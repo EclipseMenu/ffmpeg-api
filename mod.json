@@ -1,0 +1,19 @@
+{
+	"geode": "3.8.1",
+	"gd": {
+		"win": "2.206",
+		"android": "2.206",
+		"mac": "2.206",
+		"ios": "2.206"
+	},
+	"api": {
+        "include": [
+            "include/*.hpp"
+        ]
+    },
+	"id": "eclipse.ffmpeg-api",
+	"name": "ffmpeg-api",
+	"version": "v1.0.0",
+	"developers": ["Eclipse Team", "maxnu"],
+	"description": ""
+}
