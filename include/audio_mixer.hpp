@@ -27,7 +27,7 @@ public:
      * @brief Mixes a video file and raw audio data into a single MP4 output.
      *
      * This function takes an input video file and raw audio data (in the form of a vector of floating-point samples), 
-     * and merges them into a single MP4 output file. The audio codec parameters must also be provided to describe the format of the raw audio.
+     * and merges them into a single MP4 output file.
      *
      * @param videoFile The path to the input video file.
      * @param raw A vector containing the raw audio data (floating-point samples).
