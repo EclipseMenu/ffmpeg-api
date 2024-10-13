@@ -11,7 +11,7 @@ A mod that lets developers easily interact with ffmpeg to record raw videos, and
 void video() {
     ffmpeg::Recorder recorder;
 
-    RenderSettings settings;
+    ffmpeg::RenderSettings settings;
 
     //ffmpeg-api will automatically handle conversion between the input pixel
     //format and the codec's pixel format
