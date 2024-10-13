@@ -1,3 +1,3 @@
-# Template Mod
+# ffmpeg-api
 
-Edit about.md to change this
+A mod that lets developers easily interact with ffmpeg to record raw videos, and mix video and audio files.
