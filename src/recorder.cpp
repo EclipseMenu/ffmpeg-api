@@ -12,16 +12,18 @@ extern "C" {
 
 namespace ffmpeg {
 
-std::vector<std::string> Recorder::getAvailableCodecs() {
-    std::vector<std::string> vet;
+std::vector<std::pair<int, std::string>> Recorder::getAvailableCodecs() {
+    std::vector<std::pair<int, std::string>> vet;
 
     void* iter = nullptr;
     const AVCodec * codec;
 
-    while ((codec = av_codec_iterate(&iter)))
-        vet.push_back(codec->name);
+    while ((codec = av_codec_iterate(&iter))) {
+        if(codec->type == AVMEDIA_TYPE_VIDEO)
+            vet.push_back({(int)codec->id, codec->name});
+    }
 
-    std::sort(vet.begin(), vet.end());
+    std::sort(vet.begin(), vet.end(), [](std::pair<int, std::string>& a, std::pair<int, std::string>& b) { return a.second < b.second; });
     
     return vet;
 }
@@ -33,7 +35,7 @@ bool Recorder::init(const RenderSettings& settings) {
         return false;
     }
 
-    m_codec = avcodec_find_encoder_by_name(settings.m_codec.c_str());
+    m_codec = avcodec_find_encoder((AVCodecID)settings.m_codecId);
     if (!m_codec) {
         geode::log::error("Could not find encoder.");
         return false;
@@ -77,11 +79,11 @@ bool Recorder::init(const RenderSettings& settings) {
     }
 
     if(m_codecContext->pix_fmt == AV_PIX_FMT_NONE) {
-        geode::log::info("Codec {} does not support pixel format, defaulting to codec's format", settings.m_codec);
+        geode::log::info("Codec {} does not support pixel format, defaulting to codec's format", settings.m_codecId);
         m_codecContext->pix_fmt = m_codec->pix_fmts[0];
     }
     else
-        geode::log::info("Codec {} supports pixel format.", settings.m_codec);
+        geode::log::info("Codec {} supports pixel format.", settings.m_codecId);
 
     if (avcodec_open2(m_codecContext, m_codec, NULL) < 0) {
         geode::log::error("Could not open codec.");
