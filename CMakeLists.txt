@@ -43,7 +43,23 @@ if (WIN32)
         mf mfplat mfuuid bcrypt strmiids.lib
     ) # windows
 elseif (ANDROID) 
-    set(STATIC_LIBS ...) # android
+    if (ANDROID_ABI STREQUAL "arm64-v8a")
+        set(STATIC_LIBS
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavcodec.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavformat.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavutil.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswresample.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswscale.a
+        ) # android
+    elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+        set(STATIC_LIBS
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavcodec.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavformat.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavutil.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswresample.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswscale.a
+        ) # android
+    endif()
 else ()
     set(STATIC_LIBS ...) # macos
 endif()
