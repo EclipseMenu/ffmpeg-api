@@ -19,7 +19,7 @@ std::vector<std::string> Recorder::getAvailableCodecs() {
     const AVCodec * codec;
 
     while ((codec = av_codec_iterate(&iter))) {
-        if(codec->type == AVMEDIA_TYPE_VIDEO && avcodec_find_encoder_by_name(codec->name) != nullptr)
+        if(codec->type == AVMEDIA_TYPE_VIDEO)
             vec.push_back(codec->name);
     }
     
