@@ -61,14 +61,13 @@ To get the needed libraries on Windows, you can use vcpkg:
 ```sh
 vcpkg install ffmpeg[core,avcodec,avformat,avutil,swscale,swresample,amf,x264,x265,nvcodec]:x64-windows-static --recurse
 ```
+the other libraries are part of the Windows SDK
 
 ## Android
-Clone [this](https://github.com/EclipseMenu/ffmpeg-android-maker/) repository and run ffmpeg-android-maker.sh, this will produce static libraries in the build folder:
+To get the needed libraries on Android, you can use [this](https://github.com/EclipseMenu/ffmpeg-android-maker/) script. Read the README in the repository for further instructions.
 ```sh
 git clone https://github.com/EclipseMenu/ffmpeg-android-maker/
 cd ffmpeg-android-maker
 ./ffmpeg-android-maker.sh
 ```
-Read the README in the repository for further instructions.
-
 You can either run it natively on Linux or using WSL on Windows.

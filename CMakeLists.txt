@@ -4,7 +4,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+if (MSVC)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+endif()
 
 project(ffmpeg-api VERSION 1.0.0)
 
@@ -15,6 +17,7 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Final>:Final>")
+
 
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
@@ -39,8 +42,14 @@ if (WIN32)
         ${CMAKE_SOURCE_DIR}/lib/swscale.lib
         ${CMAKE_SOURCE_DIR}/lib/libx264.lib
         ${CMAKE_SOURCE_DIR}/lib/x265-static.lib
-        Ws2_32.lib mfplat.lib mf.lib secur32.lib crypt32.lib mfuuid.lib
-        mf mfplat mfuuid bcrypt strmiids.lib
+        ${CMAKE_SOURCE_DIR}/lib/ws2_32.lib
+        ${CMAKE_SOURCE_DIR}/lib/mfplat.lib
+        ${CMAKE_SOURCE_DIR}/lib/mf.lib
+        ${CMAKE_SOURCE_DIR}/lib/secur32.lib
+        ${CMAKE_SOURCE_DIR}/lib/crypt32.lib
+        ${CMAKE_SOURCE_DIR}/lib/mfuuid.lib
+        ${CMAKE_SOURCE_DIR}/lib/bcrypt.lib
+        ${CMAKE_SOURCE_DIR}/lib/strmiids.lib
     ) # windows
 elseif (ANDROID) 
     if (ANDROID_ABI STREQUAL "arm64-v8a")
