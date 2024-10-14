@@ -16,7 +16,7 @@ void video() {
     //ffmpeg-api will automatically handle conversion between the input pixel
     //format and the codec's pixel format
     settings.m_pixelFormat = PixelFormat::RGB0;
-    settings.m_codec = "h264_nvenc";
+    settings.m_codecId = 27; //fetch codecs using recorder.getAvailableCodecs()
     settings.m_bitrate = 30000000;
     settings.m_width = 1920;
     settings.m_height = 1080;
