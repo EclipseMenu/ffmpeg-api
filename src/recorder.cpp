@@ -12,18 +12,28 @@ extern "C" {
 
 namespace ffmpeg {
 
-std::unordered_map<std::string, int> Recorder::getAvailableCodecs() {
-    std::unordered_map<std::string, int> map;
+std::vector<std::string> Recorder::getAvailableCodecs() {
+    std::vector<std::string> vec;
 
     void* iter = nullptr;
     const AVCodec * codec;
 
     while ((codec = av_codec_iterate(&iter))) {
-        if(codec->type == AVMEDIA_TYPE_VIDEO)
-            map.insert({codec->name, (int)codec->id});
+        if(codec->type == AVMEDIA_TYPE_VIDEO && avcodec_find_encoder_by_name(codec->name) != nullptr)
+            vec.push_back(codec->name);
     }
     
-    return map;
+    return vec;
+}
+
+const AVCodec* getCodecByName(const std::string& name) {
+    void* iter = nullptr;
+    const AVCodec * codec;
+    while ((codec = av_codec_iterate(&iter))) {
+        if(codec->type == AVMEDIA_TYPE_VIDEO && std::string(codec->name) == name)
+            return codec;
+    }
+    return nullptr;
 }
 
 bool Recorder::init(const RenderSettings& settings) {
@@ -33,7 +43,7 @@ bool Recorder::init(const RenderSettings& settings) {
         return false;
     }
 
-    m_codec = avcodec_find_encoder((AVCodecID)settings.m_codecId);
+    m_codec = getCodecByName(settings.m_codec);
     if (!m_codec) {
         geode::log::error("Could not find encoder.");
         return false;
@@ -77,11 +87,11 @@ bool Recorder::init(const RenderSettings& settings) {
     }
 
     if(m_codecContext->pix_fmt == AV_PIX_FMT_NONE) {
-        geode::log::info("Codec {} does not support pixel format, defaulting to codec's format", settings.m_codecId);
+        geode::log::info("Codec {} does not support pixel format, defaulting to codec's format", settings.m_codec);
         m_codecContext->pix_fmt = m_codec->pix_fmts[0];
     }
     else
-        geode::log::info("Codec {} supports pixel format.", settings.m_codecId);
+        geode::log::info("Codec {} supports pixel format.", settings.m_codec);
 
     if (avcodec_open2(m_codecContext, m_codec, NULL) < 0) {
         geode::log::error("Could not open codec.");

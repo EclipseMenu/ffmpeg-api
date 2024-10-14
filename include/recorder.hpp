@@ -62,9 +62,9 @@ public:
      * This function iterates through all available codecs in FFmpeg and 
      * returns a sorted vector of codec names.
      * 
-     * @return A map of representing the names and ids of available codecs.
+     * @return A vector representing the names of available codecs.
      */
-    std::unordered_map<std::string, int> getAvailableCodecs();
+    std::vector<std::string> getAvailableCodecs();
 
 private:
     AVFormatContext* m_formatContext = nullptr;
