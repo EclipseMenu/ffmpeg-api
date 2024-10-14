@@ -12,20 +12,18 @@ extern "C" {
 
 namespace ffmpeg {
 
-std::vector<std::pair<int, std::string>> Recorder::getAvailableCodecs() {
-    std::vector<std::pair<int, std::string>> vet;
+std::unordered_map<std::string, int> Recorder::getAvailableCodecs() {
+    std::unordered_map<std::string, int> map;
 
     void* iter = nullptr;
     const AVCodec * codec;
 
     while ((codec = av_codec_iterate(&iter))) {
         if(codec->type == AVMEDIA_TYPE_VIDEO)
-            vet.push_back({(int)codec->id, codec->name});
+            map.insert({codec->name, (int)codec->id});
     }
-
-    std::sort(vet.begin(), vet.end(), [](std::pair<int, std::string>& a, std::pair<int, std::string>& b) { return a.second < b.second; });
     
-    return vet;
+    return map;
 }
 
 bool Recorder::init(const RenderSettings& settings) {

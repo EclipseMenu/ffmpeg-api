@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <unordered_map>
 
 class AVFormatContext;
 class AVCodec;
@@ -61,9 +62,9 @@ public:
      * This function iterates through all available codecs in FFmpeg and 
      * returns a sorted vector of codec names.
      * 
-     * @return A vector of pairs representing the ids and names of available codecs.
+     * @return A map of representing the names and ids of available codecs.
      */
-    std::vector<std::pair<int, std::string>> getAvailableCodecs();
+    std::unordered_map<std::string, int> getAvailableCodecs();
 
 private:
     AVFormatContext* m_formatContext = nullptr;
