@@ -16,7 +16,7 @@
     "version": "v1.0.2",
     "developers": ["Eclipse Team", "maxnu"],
     "description": "Interaction with FFmpeg made easy",
-    "tags": ["utility", "offline"],
+    "tags": ["utility", "offline", "developer"],
     "links": {
         "source": "https://github.com/EclipseMenu/ffmpeg-api",
         "community": "https://discord.gg/NnpwFRDMND"
