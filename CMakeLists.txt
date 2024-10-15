@@ -42,6 +42,9 @@ if (WIN32)
         ${CMAKE_SOURCE_DIR}/lib/swscale.lib
         ${CMAKE_SOURCE_DIR}/lib/libx264.lib
         ${CMAKE_SOURCE_DIR}/lib/x265-static.lib
+        ${CMAKE_SOURCE_DIR}/lib/aom.lib
+        ${CMAKE_SOURCE_DIR}/lib/vpx.lib
+        ${CMAKE_SOURCE_DIR}/lib/openh264.lib
         ${CMAKE_SOURCE_DIR}/lib/ws2_32.lib
         ${CMAKE_SOURCE_DIR}/lib/mfplat.lib
         ${CMAKE_SOURCE_DIR}/lib/mf.lib
@@ -59,14 +62,24 @@ elseif (ANDROID)
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavutil.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswresample.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswscale.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libaom.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libvpx.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libx264.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libx265.a
         ) # android
     elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+        add_definitions(-D__USE_FILE_OFFSET64)
+        add_definitions(-DANDROID_PLATFORM=24)
         set(STATIC_LIBS
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavcodec.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavformat.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavutil.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswresample.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswscale.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libaom.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libvpx.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libx264.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libx265.a
         ) # android
     endif()
 else ()

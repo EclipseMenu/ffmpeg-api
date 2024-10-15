@@ -19,7 +19,9 @@ std::vector<std::string> Recorder::getAvailableCodecs() {
     const AVCodec * codec;
 
     while ((codec = av_codec_iterate(&iter))) {
-        if(codec->type == AVMEDIA_TYPE_VIDEO && avcodec_find_encoder_by_name(codec->name) != nullptr)
+        if(codec->type == AVMEDIA_TYPE_VIDEO &&
+                (codec->id == AV_CODEC_ID_H264 || codec->id == AV_CODEC_ID_HEVC || codec->id == AV_CODEC_ID_VP8 || codec->id == AV_CODEC_ID_VP9 || codec->id == AV_CODEC_ID_AV1 || codec->id == AV_CODEC_ID_MPEG4) &&
+                avcodec_find_encoder_by_name(codec->name) != nullptr && codec->pix_fmts && std::find(vec.begin(), vec.end(), std::string(codec->name)) == vec.end())
             vec.push_back(codec->name);
     }
     
