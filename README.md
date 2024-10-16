@@ -76,3 +76,22 @@ When building for android32 you need to set android version 24, you can do so by
 ```sh
 geode build --platform android32 --config Release -- -DANDROID_PLATFORM=24
 ```
+
+## MacOS
+To get the needed libraries on MacOS, you must have pkg-config installed, have BZIP2, and build x264 from source.
+
+```sh
+brew install pkgconfig
+brew install bzip2
+
+git clone https://code.videolan.org/videolan/x264.git
+cd x264
+./configure --enable-static --enable-shared
+make
+
+git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+brew install automake fdk-aac git lame libass libtool libvorbis libvpx opus sdl shtool texi2html theora wget x264 x265 xvid nasm
+mkdir output
+./configure --prefix=$PWD/output --enable-static --enable-shared --enable-libx264 --enable-gpl
+make
+```

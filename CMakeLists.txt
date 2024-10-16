@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+set(CMAKE_OSX_ARCHITECTURES "arm64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 if (MSVC)
@@ -83,7 +83,18 @@ elseif (ANDROID)
         ) # android
     endif()
 else ()
-    set(STATIC_LIBS ...) # macos
+    find_package(BZIP2 REQUIRED)
+    set(STATIC_LIBS 
+        "-framework Security"
+        ${CMAKE_SOURCE_DIR}/lib/libx264.a
+        ${CMAKE_SOURCE_DIR}/lib/libavcodec.a
+        ${CMAKE_SOURCE_DIR}/lib/libavformat.a
+        ${CMAKE_SOURCE_DIR}/lib/libavutil.a
+        ${CMAKE_SOURCE_DIR}/lib/libswresample.a
+        ${CMAKE_SOURCE_DIR}/lib/libswscale.a     
+        ${BZIP2_LIBRARY}
+        "-lm -lbz2 -lz -liconv -pthread -framework Security -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices -framework CoreAudio -framework AVFoundation -framework CoreGraphics -framework AudioToolbox -framework Metal -framework CoreImage -framework AppKit"
+    ) # macos
 endif()
 target_link_libraries(${PROJECT_NAME} ${STATIC_LIBS})
 
