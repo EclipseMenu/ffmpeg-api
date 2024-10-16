@@ -8,4 +8,9 @@
 - Improve filesize
 
 # 1.0.3
-- Add more codecs to android and fix codec fetching
+- Add more codecs to android
+- Fix codec fetching
+
+# 1.0.4
+
+- Mac release
