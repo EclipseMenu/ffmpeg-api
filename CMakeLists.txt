@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES "arm64")
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 if (MSVC)
@@ -95,6 +95,13 @@ else ()
         ${BZIP2_LIBRARY}
         "-lm -lbz2 -lz -liconv -pthread -framework Security -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices -framework CoreAudio -framework AVFoundation -framework CoreGraphics -framework AudioToolbox -framework Metal -framework CoreImage -framework AppKit"
     ) # macos
+
+    if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64") 
+        set(STATIC_LIBS
+            ${STATIC_LIBS}
+            ${CMAKE_SOURCE_DIR}/lib/liblzma.a
+        )
+    endif()
 endif()
 target_link_libraries(${PROJECT_NAME} ${STATIC_LIBS})
 

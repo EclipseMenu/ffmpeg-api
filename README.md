@@ -59,7 +59,7 @@ void audioRaw() {
 ### Windows
 To get the needed libraries on Windows, you can use vcpkg:
 ```sh
-vcpkg install ffmpeg[core,avcodec,avformat,avutil,swscale,swresample,amf,x264,x265,nvcodec,openh264,aom,vpx]:x64-windows-static --recurse
+vcpkg install ffmpeg[core,avcodec,avformat,swscale,swresample,amf,x264,x265,nvcodec,openh264,aom,vpx]:x64-windows-static --recurse
 ```
 the other libraries are part of the Windows SDK
 
@@ -86,12 +86,12 @@ brew install bzip2
 
 git clone https://code.videolan.org/videolan/x264.git
 cd x264
-./configure --enable-static --disable-shared
+./configure --enable-static
 make
 
 git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
 brew install automake fdk-aac git lame libass libtool libvorbis libvpx opus sdl shtool texi2html theora wget x264 x265 xvid nasm
 mkdir output
-./configure --prefix=$PWD/output --enable-static --disable-shared --enable-libx264 --enable-gpl
+./configure --prefix=$PWD/output --enable-static --enable-libx264 --enable-gpl
 make
 ```
