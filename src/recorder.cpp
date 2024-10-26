@@ -74,8 +74,6 @@ bool Recorder::init(const RenderSettings& settings) {
     m_codecContext->width = settings.m_width;
     m_codecContext->height = settings.m_height;
     m_codecContext->time_base = AVRational(1, settings.m_fps);
-    m_codecContext->gop_size = 10;
-    m_codecContext->max_b_frames = 1;
     m_codecContext->pix_fmt = AV_PIX_FMT_NONE;
     m_videoStream->time_base = m_codecContext->time_base;
 
