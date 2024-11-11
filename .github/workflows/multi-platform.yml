@@ -32,6 +32,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Own The Libs
+        run: |
+          ls -la
+          ls -la ffmpeg-api
+          # git clone https://github.com/prevter/ffmpeg-libs.git
+          # cd ffmpeg-libs && git checkout ${{ matrix.config.name }}
+          # cd ..
+          # 7z x ffmpeg-libs/lib/lib.7z -offmpeg-api/lib
+
+
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
