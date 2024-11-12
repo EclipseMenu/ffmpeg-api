@@ -30,12 +30,19 @@ jobs:
     runs-on: ${{ matrix.config.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Own The Libs
-        run: |
-          git clone -b ${{ matrix.config.name }} --single-branch --depth=1 https://github.com/prevter/ffmpeg-libs.git
-          7z x ffmpeg-libs/lib/lib.7z -olib
+      - name: Own The Libs (Checkout)
+        uses: actions/checkout@v4
+        with:
+          repository: prevter/ffmpeg-libs
+          ref: ${{ matrix.config.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ffmpeg-libs
+
+      - name: Own The Libs (Extract)
+        run: 7z x ffmpeg-libs/lib/lib.7z -olib
 
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
