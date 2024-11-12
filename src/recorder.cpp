@@ -6,6 +6,9 @@ extern "C" {
     #include <libavformat/avformat.h>
     #include <libavutil/imgutils.h>
     #include <libswscale/swscale.h>
+    #include <libavfilter/avfilter.h>
+    #include <libavfilter/buffersrc.h>
+    #include <libavfilter/buffersink.h>
 }
 
 #include <iostream>
@@ -116,14 +119,6 @@ bool Recorder::init(const RenderSettings& settings) {
         return false;
     }
 
-    m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)settings.m_pixelFormat, m_codecContext->width,
-        m_codecContext->height, m_codecContext->pix_fmt, SWS_BILINEAR, NULL, NULL, NULL);
-
-    if (!m_swsCtx) {
-        geode::log::error("Could not create sws context.");
-        return false;
-    }
-
     m_frame = av_frame_alloc();
     m_frame->format = m_codecContext->pix_fmt;
     m_frame->width = m_codecContext->width;
@@ -143,11 +138,72 @@ bool Recorder::init(const RenderSettings& settings) {
         return false;
     }
 
+    m_filteredFrame = av_frame_alloc();
+    m_filteredFrame->format = m_codecContext->pix_fmt;
+    m_filteredFrame->width = m_codecContext->width;
+    m_filteredFrame->height = m_codecContext->height;
+    if(av_image_alloc(m_filteredFrame->data, m_filteredFrame->linesize, m_filteredFrame->width, m_filteredFrame->height, m_codecContext->pix_fmt, 32) < 0) {
+        geode::log::error("Could not allocate raw picture buffer.");
+        return false;
+    }
+
     m_packet = new AVPacket();
 
     av_init_packet(m_packet);
     m_packet->data = NULL;
     m_packet->size = 0;
+
+    int inputPixelFormat = (int)settings.m_pixelFormat;
+
+    if(!settings.m_colorspaceFilters.empty()) {
+        AVFilterGraph* filterGraph = avfilter_graph_alloc();
+        if (!filterGraph) {
+            geode::log::error("Could not allocate filter graph.");
+            return false;
+        }
+
+        const AVFilter* buffersrc = avfilter_get_by_name("buffer");
+        const AVFilter* buffersink = avfilter_get_by_name("buffersink");
+        const AVFilter* colorspace = avfilter_get_by_name("colorspace");
+
+        char args[512];
+        snprintf(args, sizeof(args),
+                "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+                m_codecContext->width, m_codecContext->height, m_codecContext->pix_fmt,
+                m_codecContext->time_base.num, m_codecContext->time_base.den,
+                m_codecContext->sample_aspect_ratio.num, m_codecContext->sample_aspect_ratio.den);
+
+        if (avfilter_graph_create_filter(&m_buffersrcCtx, buffersrc, "in", args, nullptr, filterGraph) < 0 ||
+                avfilter_graph_create_filter(&m_buffersinkCtx, buffersink, "out", nullptr, nullptr, filterGraph) < 0 ||
+                avfilter_graph_create_filter(&m_colorspaceCtx, colorspace, "colorspace", settings.m_colorspaceFilters.c_str(), nullptr, filterGraph) < 0) {
+            geode::log::error("Error creating filter contexts.");
+            avfilter_graph_free(&filterGraph);
+            return false;
+        }
+
+        if (avfilter_link(m_buffersrcCtx, 0, m_colorspaceCtx, 0) < 0 ||
+            avfilter_link(m_colorspaceCtx, 0, m_buffersinkCtx, 0) < 0) {
+            geode::log::error("Error linking filters.");
+            avfilter_graph_free(&filterGraph);
+            return false;
+        }
+
+        if (avfilter_graph_config(filterGraph, nullptr) < 0) {
+            geode::log::error("Error configuring filter graph.");
+            avfilter_graph_free(&filterGraph);
+            return false;
+        }
+
+        inputPixelFormat = av_buffersink_get_format(m_buffersinkCtx);
+    }
+
+    m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)inputPixelFormat, m_codecContext->width,
+        m_codecContext->height, m_codecContext->pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+
+    if (!m_swsCtx) {
+        geode::log::error("Could not create sws context.");
+        return false;
+    }
 
     m_frameCount = 0;
 
@@ -160,13 +216,22 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
     if (!m_init || !m_frame || frameData.size() != m_frame->linesize[0] * m_frame->height)
         return false;
 
-    const uint8_t* srcData[1] = { frameData.data() };
-    int srcLinesize[1] = { m_frame->linesize[0] };
+    if(m_buffersrcCtx) {
+        std::memcpy(m_frame->data[0], frameData.data(), frameData.size());
+        filterFrame(m_frame, m_filteredFrame);
 
-    sws_scale(
-        m_swsCtx, srcData, srcLinesize, 0, m_frame->height,
-        m_convertedFrame->data, m_convertedFrame->linesize
-    );
+        sws_scale(
+            m_swsCtx, m_filteredFrame->data, m_filteredFrame->linesize, 0, m_filteredFrame->height,
+            m_convertedFrame->data, m_convertedFrame->linesize);
+    }
+    else {
+        const uint8_t* srcData[1] = { frameData.data() };
+        int srcLinesize[1] = { m_frame->linesize[0] };
+
+        sws_scale(
+            m_swsCtx, srcData, m_frame->linesize, 0, m_frame->height,
+            m_convertedFrame->data, m_convertedFrame->linesize);
+    }
 
     m_convertedFrame->pts = m_frameCount++;
 
@@ -189,6 +254,16 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
     }
 
     return true;
+}
+
+void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
+    if (av_buffersrc_add_frame(m_buffersrcCtx, inputFrame) < 0) {
+        std::cerr << "Error feeding frame to filter graph.\n";
+        avfilter_graph_free(&m_filterGraph);
+        return;
+    }
+
+    av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
 }
 
 void Recorder::stop() {
@@ -214,6 +289,11 @@ void Recorder::stop() {
         avio_close(m_formatContext->pb);
     }
     avformat_free_context(m_formatContext);
+
+    if(m_filterGraph) {
+        avfilter_graph_free(&m_filterGraph);
+        av_frame_free(&m_filteredFrame);
+    }
 
     delete m_packet;
 }
