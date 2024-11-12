@@ -21,8 +21,8 @@ std::vector<std::string> Recorder::getAvailableCodecs() {
     while ((codec = av_codec_iterate(&iter))) {
         if(codec->type == AVMEDIA_TYPE_VIDEO &&
                 (codec->id == AV_CODEC_ID_H264 || codec->id == AV_CODEC_ID_HEVC || codec->id == AV_CODEC_ID_VP8 || codec->id == AV_CODEC_ID_VP9 || codec->id == AV_CODEC_ID_AV1 || codec->id == AV_CODEC_ID_MPEG4) &&
-                avcodec_find_encoder_by_name(codec->name) != nullptr && codec->pix_fmts && std::find(vec.begin(), vec.end(), std::string(codec->name)) == vec.end())
-            vec.push_back(codec->name);
+                avcodec_find_encoder_by_name(codec->name) != nullptr && codec->pix_fmts && std::ranges::find(vec, std::string(codec->name)) == vec.end())
+            vec.emplace_back(codec->name);
     }
     
     return vec;
@@ -80,7 +80,7 @@ bool Recorder::init(const RenderSettings& settings) {
     const AVPixelFormat *pix_fmt = m_codec->pix_fmts;
     if (pix_fmt) {
         while (*pix_fmt != AV_PIX_FMT_NONE) {
-            if(*pix_fmt == (AVPixelFormat)settings.m_pixelFormat)
+            if(*pix_fmt == static_cast<AVPixelFormat>(settings.m_pixelFormat))
                 m_codecContext->pix_fmt = *pix_fmt;
             ++pix_fmt;
         }
@@ -93,7 +93,7 @@ bool Recorder::init(const RenderSettings& settings) {
     else
         geode::log::info("Codec {} supports pixel format.", settings.m_codec);
 
-    if (avcodec_open2(m_codecContext, m_codec, NULL) < 0) {
+    if (avcodec_open2(m_codecContext, m_codec, nullptr) < 0) {
         geode::log::error("Could not open codec.");
         return false;
     }
@@ -111,13 +111,13 @@ bool Recorder::init(const RenderSettings& settings) {
             return false;
     }
 
-    if (avformat_write_header(m_formatContext, NULL) < 0) {
+    if (avformat_write_header(m_formatContext, nullptr) < 0) {
         geode::log::error("Could not write header.");
         return false;
     }
 
-    m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)settings.m_pixelFormat, m_codecContext->width,
-        m_codecContext->height, m_codecContext->pix_fmt, SWS_BILINEAR, NULL, NULL, NULL);
+    m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, static_cast<AVPixelFormat>(settings.m_pixelFormat), m_codecContext->width,
+        m_codecContext->height, m_codecContext->pix_fmt, SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     if (!m_swsCtx) {
         geode::log::error("Could not create sws context.");
@@ -178,7 +178,7 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         ret = avcodec_receive_packet(m_codecContext, m_packet);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
             break;
-        else if (ret < 0)
+        if (ret < 0)
             return false;
 
         av_packet_rescale_ts(m_packet, m_codecContext->time_base, m_videoStream->time_base);
@@ -197,7 +197,7 @@ void Recorder::stop() {
 
     m_init = false;
 
-    avcodec_send_frame(m_codecContext, NULL);
+    avcodec_send_frame(m_codecContext, nullptr);
     while (avcodec_receive_packet(m_codecContext, m_packet) == 0) {
         av_packet_rescale_ts(m_packet, m_codecContext->time_base, m_videoStream->time_base);
         m_packet->stream_index = m_videoStream->index;

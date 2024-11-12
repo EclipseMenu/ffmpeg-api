@@ -1,6 +1,7 @@
 #include "audio_mixer.hpp"
 
 #include <iostream>
+#include <utility>
 
 extern "C" {
     #include <libavcodec/avcodec.h>
@@ -87,15 +88,14 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 	std::vector<float> audioFrames;
 
 	float *convertBuffer[2];
-    convertBuffer[0] = (float *)av_malloc(4096 * sizeof(float));
-    convertBuffer[1] = (float *)av_malloc(4096 * sizeof(float));
+    convertBuffer[0] = static_cast<float *>(av_malloc(4096 * sizeof(float)));
+    convertBuffer[1] = static_cast<float *>(av_malloc(4096 * sizeof(float)));
 
     while (av_read_frame(formatContext, &packet) >= 0) {
         if (packet.stream_index == audioStreamIndex && avcodec_send_packet(codecContext, &packet) == 0) {
                 while (avcodec_receive_frame(codecContext, frame) == 0) {
-                    int ret = swr_convert(swr, (uint8_t **)convertBuffer, 4096,
-                                        (const uint8_t **)frame->data,
-                                        frame->nb_samples);
+                    int ret = swr_convert(swr, reinterpret_cast<uint8_t **>(convertBuffer), 4096,
+                                        frame->data, frame->nb_samples);
                     if (ret < 0) {
                         char errbuf[AV_ERROR_MAX_STRING_SIZE];
                         av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
@@ -125,7 +125,7 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 
 namespace ffmpeg {
     void AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
-        const int frameSize = 1024;
+        constexpr int frameSize = 1024;
 
         AVFormatContext* wavFormatContext = nullptr;
         if (avformat_open_input(&wavFormatContext, audioFile.string().c_str(), nullptr, nullptr) < 0) {
@@ -137,7 +137,7 @@ namespace ffmpeg {
 
         std::vector<float> raw = readAudioFile(audioFile.string().c_str(), 44100, AV_SAMPLE_FMT_FLTP, &inputAudioParams);
 
-        mixVideoRaw(videoFile, raw, outputMp4File, inputAudioParams.sample_rate);
+        mixVideoRaw(std::move(videoFile), raw, std::move(outputMp4File), inputAudioParams.sample_rate);
 
         avformat_close_input(&wavFormatContext);
     }
@@ -182,8 +182,8 @@ namespace ffmpeg {
             geode::log::error("Failed to create audio stream.");
             return;
         }
-        
-        const int channels = 2;
+
+        constexpr int channels = 2;
 
         outputAudioStream->codecpar->codec_tag = 0;
         outputAudioStream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
@@ -211,7 +211,7 @@ namespace ffmpeg {
         audio_codec_context_encoder->sample_rate = sampleRate;
         audio_codec_context_encoder->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
         audio_codec_context_encoder->sample_fmt = AV_SAMPLE_FMT_FLTP;
-        audio_codec_context_encoder->time_base = AVRational{1, (int)sampleRate};
+        audio_codec_context_encoder->time_base = AVRational{1, static_cast<int>(sampleRate)};
 
         int ret = avcodec_open2(audio_codec_context_encoder, audioCodec, nullptr);
         if (ret < 0) {
@@ -289,7 +289,7 @@ namespace ffmpeg {
 
             AVPacket audioPacket;
             av_init_packet(&audioPacket);
-            audioPacket.data = NULL;
+            audioPacket.data = nullptr;
             audioPacket.size = 0;
 
             while (true) {
