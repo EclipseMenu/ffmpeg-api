@@ -38,7 +38,7 @@ jobs:
         with:
           repository: prevter/ffmpeg-libs
           ref: ${{ matrix.config.name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.FFMPEG_LIBS_TOKEN }}
           path: ffmpeg-libs
 
       - name: Own The Libs (Extract)
