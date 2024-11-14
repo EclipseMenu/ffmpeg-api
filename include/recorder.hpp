@@ -16,6 +16,9 @@ class AVBufferRef;
 class AVFrame;
 class AVPacket;
 class SwsContext;
+class AVFilterContext;
+class AVFilter;
+class AVFilterGraph;
 
 namespace ffmpeg {
 
@@ -67,6 +70,9 @@ public:
     std::vector<std::string> getAvailableCodecs();
 
 private:
+    void filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
+
+private:
     AVFormatContext* m_formatContext = nullptr;
     const AVCodec* m_codec = nullptr;
     AVStream* m_videoStream = nullptr;
@@ -74,8 +80,13 @@ private:
     AVBufferRef* m_hwDevice = nullptr;
     AVFrame* m_frame = nullptr;
     AVFrame* m_convertedFrame = nullptr;
+    AVFrame* m_filteredFrame = nullptr;
     AVPacket* m_packet;
     SwsContext* m_swsCtx = nullptr;
+    AVFilterGraph* m_filterGraph = nullptr;
+    AVFilterContext* m_buffersrcCtx = nullptr;
+    AVFilterContext* m_buffersinkCtx = nullptr;
+    AVFilterContext* m_colorspaceCtx = nullptr;
 
     size_t m_frameCount = 0;
     bool m_init = false;

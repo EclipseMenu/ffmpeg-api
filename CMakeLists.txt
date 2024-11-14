@@ -38,6 +38,7 @@ if (WIN32)
         ${CMAKE_SOURCE_DIR}/lib/avcodec.lib
         ${CMAKE_SOURCE_DIR}/lib/avformat.lib
         ${CMAKE_SOURCE_DIR}/lib/avutil.lib
+        ${CMAKE_SOURCE_DIR}/lib/avfilter.lib
         ${CMAKE_SOURCE_DIR}/lib/swresample.lib
         ${CMAKE_SOURCE_DIR}/lib/swscale.lib
         ${CMAKE_SOURCE_DIR}/lib/libx264.lib
@@ -60,6 +61,7 @@ elseif (ANDROID)
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavcodec.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavformat.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavutil.a
+            ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libavfilter.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswresample.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libswscale.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libaom.a
@@ -74,6 +76,7 @@ elseif (ANDROID)
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavcodec.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavformat.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavutil.a
+            ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libavfilter.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswresample.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libswscale.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libaom.a
@@ -90,6 +93,7 @@ else ()
         ${CMAKE_SOURCE_DIR}/lib/libavcodec.a
         ${CMAKE_SOURCE_DIR}/lib/libavformat.a
         ${CMAKE_SOURCE_DIR}/lib/libavutil.a
+        ${CMAKE_SOURCE_DIR}/lib/libavfilter.a
         ${CMAKE_SOURCE_DIR}/lib/libswresample.a
         ${CMAKE_SOURCE_DIR}/lib/libswscale.a     
         ${BZIP2_LIBRARY}
