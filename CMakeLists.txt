@@ -95,10 +95,11 @@ else ()
         ${CMAKE_SOURCE_DIR}/lib/libavformat.a
         ${CMAKE_SOURCE_DIR}/lib/libavutil.a
         ${CMAKE_SOURCE_DIR}/lib/libavfilter.a
+        ${CMAKE_SOURCE_DIR}/lib/libpostproc.a
         ${CMAKE_SOURCE_DIR}/lib/libswresample.a
         ${CMAKE_SOURCE_DIR}/lib/libswscale.a     
         ${BZIP2_LIBRARY}
-        "-lm -lbz2 -lz -liconv -lpostproc -pthread -framework Security -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices -framework CoreAudio -framework AVFoundation -framework CoreGraphics -framework AudioToolbox -framework Metal -framework CoreImage -framework AppKit"
+        "-lm -lbz2 -lz -liconv -pthread -framework Security -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices -framework CoreAudio -framework AVFoundation -framework CoreGraphics -framework AudioToolbox -framework Metal -framework CoreImage -framework AppKit"
     ) # macos
 
     if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64") 
