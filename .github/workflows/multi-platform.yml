@@ -21,6 +21,7 @@ jobs:
         - name: Android32
           os: ubuntu-latest
           target: Android32
+          extra: -DANDROID_PLATFORM=24
 
         - name: Android64
           os: ubuntu-latest
@@ -40,6 +41,7 @@ jobs:
           ref: ${{ matrix.config.name }}
           token: ${{ secrets.FFMPEG_LIBS_TOKEN }}
           path: ffmpeg-libs
+          configure-args: ${{ matrix.config.extra || '' }}
 
       - name: Own The Libs (Extract)
         run: 7z x ffmpeg-libs/lib/lib.7z -olib
