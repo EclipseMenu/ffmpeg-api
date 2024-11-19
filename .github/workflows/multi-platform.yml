@@ -21,6 +21,7 @@ jobs:
         - name: Android32
           os: ubuntu-latest
           target: Android32
+          min-sdk: 24
 
         - name: Android64
           os: ubuntu-latest
@@ -51,6 +52,7 @@ jobs:
           bindings-ref: main
           combine: true
           target: ${{ matrix.config.target }}
+          android-min-sdk: ${{ matrix.config.min-sdk || 23 }}
 
   package:
     name: Package builds
