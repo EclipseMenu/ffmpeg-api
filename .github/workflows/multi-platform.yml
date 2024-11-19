@@ -38,7 +38,7 @@ jobs:
       - name: Own The Libs (Checkout)
         uses: actions/checkout@v4
         with:
-          repository: prevter/ffmpeg-libs
+          repository: EclipseMenu/ffmpeg-libs
           ref: ${{ matrix.config.name }}
           token: ${{ secrets.FFMPEG_LIBS_TOKEN }}
           path: ffmpeg-libs
