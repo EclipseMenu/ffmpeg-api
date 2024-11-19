@@ -41,7 +41,6 @@ jobs:
           ref: ${{ matrix.config.name }}
           token: ${{ secrets.FFMPEG_LIBS_TOKEN }}
           path: ffmpeg-libs
-          android-min-sdk: ${{ matrix.config.min-sdk || 23 }}
 
       - name: Own The Libs (Extract)
         run: 7z x ffmpeg-libs/lib/lib.7z -olib
@@ -53,6 +52,7 @@ jobs:
           bindings-ref: main
           combine: true
           target: ${{ matrix.config.target }}
+          android-min-sdk: ${{ matrix.config.min-sdk || 23 }}
 
   package:
     name: Package builds
