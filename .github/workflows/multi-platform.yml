@@ -21,7 +21,7 @@ jobs:
         - name: Android32
           os: ubuntu-latest
           target: Android32
-          extra: -DANDROID_PLATFORM=24
+          extra: '-DANDROID_PLATFORM=24 -D_FILE_OFFSET_BITS=64'
 
         - name: Android64
           os: ubuntu-latest
