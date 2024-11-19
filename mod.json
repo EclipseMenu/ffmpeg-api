@@ -1,10 +1,10 @@
 {
     "geode": "4.0.0",
     "gd": {
-        "win": "2.2074",
-        "android": "2.2074",
-        "mac": "2.2074",
-        "ios": "2.2074"
+        "win": "*",
+        "android": "*",
+        "mac": "*",
+        "ios": "*"
     },
     "api": {
         "include": [
@@ -13,7 +13,7 @@
     },
     "id": "eclipse.ffmpeg-api",
     "name": "FFmpeg API",
-    "version": "v1.0.4",
+    "version": "v1.1.0",
     "developers": ["Eclipse Team", "maxnu"],
     "description": "Interaction with FFmpeg made easy",
     "tags": ["utility", "offline", "developer"],

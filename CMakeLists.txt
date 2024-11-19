@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
@@ -17,7 +18,7 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Final>:Final>")
-
+set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
@@ -46,14 +47,14 @@ if (WIN32)
         ${CMAKE_SOURCE_DIR}/lib/aom.lib
         ${CMAKE_SOURCE_DIR}/lib/vpx.lib
         ${CMAKE_SOURCE_DIR}/lib/openh264.lib
-        ${CMAKE_SOURCE_DIR}/lib/ws2_32.lib
-        ${CMAKE_SOURCE_DIR}/lib/mfplat.lib
-        ${CMAKE_SOURCE_DIR}/lib/mf.lib
-        ${CMAKE_SOURCE_DIR}/lib/secur32.lib
-        ${CMAKE_SOURCE_DIR}/lib/crypt32.lib
-        ${CMAKE_SOURCE_DIR}/lib/mfuuid.lib
-        ${CMAKE_SOURCE_DIR}/lib/bcrypt.lib
-        ${CMAKE_SOURCE_DIR}/lib/strmiids.lib
+        ws2_32.lib
+        mfplat.lib
+        mf.lib
+        secur32.lib
+        crypt32.lib
+        mfuuid.lib
+        bcrypt.lib
+        strmiids.lib
     ) # windows
 elseif (ANDROID) 
     if (ANDROID_ABI STREQUAL "arm64-v8a")
@@ -94,18 +95,13 @@ else ()
         ${CMAKE_SOURCE_DIR}/lib/libavformat.a
         ${CMAKE_SOURCE_DIR}/lib/libavutil.a
         ${CMAKE_SOURCE_DIR}/lib/libavfilter.a
+        ${CMAKE_SOURCE_DIR}/lib/libpostproc.a
         ${CMAKE_SOURCE_DIR}/lib/libswresample.a
-        ${CMAKE_SOURCE_DIR}/lib/libswscale.a     
+        ${CMAKE_SOURCE_DIR}/lib/libswscale.a
+        ${CMAKE_SOURCE_DIR}/lib/liblzma.a   
         ${BZIP2_LIBRARY}
         "-lm -lbz2 -lz -liconv -pthread -framework Security -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices -framework CoreAudio -framework AVFoundation -framework CoreGraphics -framework AudioToolbox -framework Metal -framework CoreImage -framework AppKit"
     ) # macos
-
-    if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64") 
-        set(STATIC_LIBS
-            ${STATIC_LIBS}
-            ${CMAKE_SOURCE_DIR}/lib/liblzma.a
-        )
-    endif()
 endif()
 target_link_libraries(${PROJECT_NAME} ${STATIC_LIBS})
 
