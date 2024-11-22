@@ -47,14 +47,14 @@ if (WIN32)
         ${CMAKE_SOURCE_DIR}/lib/aom.lib
         ${CMAKE_SOURCE_DIR}/lib/vpx.lib
         ${CMAKE_SOURCE_DIR}/lib/openh264.lib
-        ws2_32.lib
-        mfplat.lib
-        mf.lib
-        secur32.lib
-        crypt32.lib
-        mfuuid.lib
-        bcrypt.lib
-        strmiids.lib
+        ${CMAKE_SOURCE_DIR}/lib/ws2_32.lib
+        ${CMAKE_SOURCE_DIR}/lib/mfplat.lib
+        ${CMAKE_SOURCE_DIR}/lib/mf.lib
+        ${CMAKE_SOURCE_DIR}/lib/secur32.lib
+        ${CMAKE_SOURCE_DIR}/lib/crypt32.lib
+        ${CMAKE_SOURCE_DIR}/lib/mfuuid.lib
+        ${CMAKE_SOURCE_DIR}/lib/bcrypt.lib
+        ${CMAKE_SOURCE_DIR}/lib/strmiids.lib
     ) # windows
 elseif (ANDROID) 
     if (ANDROID_ABI STREQUAL "arm64-v8a")
