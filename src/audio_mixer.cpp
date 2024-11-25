@@ -296,7 +296,7 @@ namespace ffmpeg {
             audioPacket.data = nullptr;
             audioPacket.size = 0;
 
-            geode::log::debug("2 timebase {} {}", audio_codec_context_encoder->time_base.num, audio_codec_context_encoder->time_base.den, outputAudioStream->time_base.num, outputAudioStream->time_base.den);
+            geode::log::debug("2 timebase {} {} {} {}", audio_codec_context_encoder->time_base.num, audio_codec_context_encoder->time_base.den, outputAudioStream->time_base.num, outputAudioStream->time_base.den);
 
             while (true) {
                 int ret = avcodec_receive_packet(audio_codec_context_encoder, &audioPacket);
