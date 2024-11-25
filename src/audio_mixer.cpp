@@ -286,11 +286,6 @@ namespace ffmpeg {
             return;
         }
 
-        outputVideoStream->codecpar->codec_id = AV_CODEC_ID_H264;
-        outputVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-        outputFormatContext->video_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-        outputFormatContext->video_codec_id = AV_CODEC_ID_H264;
-
         if (!(outputFormatContext->oformat->flags & AVFMT_NOFILE)) {
             if (avio_open(&outputFormatContext->pb, outputMp4File.string().c_str(), AVIO_FLAG_WRITE) < 0) {
                 geode::log::error("Could not open output file.");
@@ -312,7 +307,7 @@ namespace ffmpeg {
         while (true) {
             if (av_read_frame(videoFormatContext, &packet) >= 0) {
                 av_packet_rescale_ts(&packet, videoFormatContext->streams[videoStreamIndex]->time_base, outputVideoStream->time_base);
-                packet.stream_index = 0;
+                packet.stream_index = videoStreamIndex;
                 av_interleaved_write_frame(outputFormatContext, &packet);
                 av_packet_unref(&packet);
             } else {
