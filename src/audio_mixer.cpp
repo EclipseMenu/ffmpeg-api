@@ -144,6 +144,8 @@ namespace ffmpeg {
 
     void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate) {
         const int frameSize = 1024;
+
+        geode::log::debug("raw size {}", raw.size());
         
         AVFormatContext* videoFormatContext = nullptr;
         if (avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr) < 0) {
@@ -241,6 +243,8 @@ namespace ffmpeg {
             return;
         }
 
+        geode::log::debug("1 timebase {} {}", videoFormatContext->streams[videoStreamIndex]->time_base, outputVideoStream->time_base);
+
         AVPacket packet;
         while (true) {
             if (av_read_frame(videoFormatContext, &packet) >= 0) {
@@ -291,6 +295,8 @@ namespace ffmpeg {
             av_init_packet(&audioPacket);
             audioPacket.data = nullptr;
             audioPacket.size = 0;
+
+            geode::log::debug("2 timebase {} {}", audio_codec_context_encoder->time_base, outputAudioStream->time_base);
 
             while (true) {
                 int ret = avcodec_receive_packet(audio_codec_context_encoder, &audioPacket);
