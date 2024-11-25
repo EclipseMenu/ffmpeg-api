@@ -123,6 +123,62 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 	return audioFrames;
 }
 
+std::vector<float> resampleAudio(const std::vector<float>& inputAudio, int inputSampleRate, int targetSampleRate) {
+    SwrContext *swrCtx = nullptr;
+	int ret;
+    AVChannelLayout ch_layout;
+    av_channel_layout_from_string(&ch_layout, "2 channels");
+    
+    ret = swr_alloc_set_opts2(&swrCtx, &ch_layout, AV_SAMPLE_FMT_FLT,
+        targetSampleRate, &ch_layout, AV_SAMPLE_FMT_FLT,
+        inputSampleRate, 0, nullptr);
+
+    if (ret < 0) {
+		char errbuf[AV_ERROR_MAX_STRING_SIZE];
+		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+		geode::log::error("Failed to set up swr context: {}", errbuf);
+		return {};
+	}
+	ret = swr_init(swrCtx);
+	if (ret < 0) {
+		char errbuf[AV_ERROR_MAX_STRING_SIZE];
+		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+		geode::log::error("Failed to initialize swr context: {}", errbuf);
+		return {};
+	}
+
+    const int chunkSize = 4096;
+    const int numChannels = 2;
+
+    int maxOutputSamples = av_rescale_rnd(chunkSize, targetSampleRate, inputSampleRate, AV_ROUND_UP);
+    std::vector<float> outputAudio;
+    std::vector<float> outputChunk(maxOutputSamples * numChannels);
+
+    const uint8_t* inData[1] = { nullptr };
+    uint8_t* outData[1] = { reinterpret_cast<uint8_t*>(outputChunk.data()) };
+
+    for (size_t i = 0; i < inputAudio.size(); i += chunkSize * numChannels) {
+        size_t currentChunkSize = std::min((size_t)(chunkSize * numChannels), inputAudio.size() - i);
+
+        inData[0] = reinterpret_cast<const uint8_t*>(&inputAudio[i]);
+        int inputSamples = currentChunkSize / numChannels;
+
+        int resampledSamples = swr_convert(swrCtx, outData, maxOutputSamples, inData, inputSamples);
+        if (ret < 0) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            geode::log::error("Failed to convert audio frame: {}", errbuf);
+            return {};
+        }
+
+        outputAudio.insert(outputAudio.end(), outputChunk.begin(), outputChunk.begin() + resampledSamples * numChannels);
+    }
+
+    swr_free(&swrCtx);
+
+    return outputAudio;
+}
+
 namespace ffmpeg {
     void AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
         constexpr int frameSize = 1024;
@@ -143,9 +199,7 @@ namespace ffmpeg {
     }
 
     void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate) {
-        const int frameSize = 1024;
-
-        geode::log::debug("raw size {}", raw.size());
+        const int frameSize = 1024; 
         
         AVFormatContext* videoFormatContext = nullptr;
         if (avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr) < 0) {
@@ -186,6 +240,17 @@ namespace ffmpeg {
         }
 
         constexpr int channels = 2;
+
+        avformat_find_stream_info(videoFormatContext, nullptr);
+        auto duration = static_cast<double>(videoFormatContext->duration) / AV_TIME_BASE;
+        auto newSampleRate = raw.size() / duration / channels;
+
+        std::vector<float> resampled = resampleAudio(raw, newSampleRate, 44100);
+
+        if(resampled.empty()) {
+            geode::log::error("Failed to resample audio.");
+            return;
+        }
 
         outputAudioStream->codecpar->codec_tag = 0;
         outputAudioStream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
@@ -242,9 +307,7 @@ namespace ffmpeg {
             avformat_close_input(&videoFormatContext);
             return;
         }
-
-        geode::log::debug("1 timebase {} {} {} {}", videoFormatContext->streams[videoStreamIndex]->time_base.num, videoFormatContext->streams[videoStreamIndex]->time_base.den, outputVideoStream->time_base.num, outputVideoStream->time_base.den);
-
+        
         AVPacket packet;
         while (true) {
             if (av_read_frame(videoFormatContext, &packet) >= 0) {
@@ -268,8 +331,8 @@ namespace ffmpeg {
         audioFrame->format = AV_SAMPLE_FMT_FLTP;
         audioFrame->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
 
-        for (size_t i = 0; i < raw.size(); i += frameSize * channels) {
-            int samplesToEncode = std::min(frameSize, static_cast<int>((raw.size() - i) / channels));
+        for (size_t i = 0; i < resampled.size(); i += frameSize * channels) {
+            int samplesToEncode = std::min(frameSize, static_cast<int>((resampled.size() - i) / channels));
 
             audioFrame->nb_samples = samplesToEncode;
             audioFrame->pts = pts;
@@ -282,8 +345,8 @@ namespace ffmpeg {
             }
 
             for (int j = 0; j < samplesToEncode; ++j) {
-                reinterpret_cast<float*>(audioFrame->data[0])[j] = raw[i + j * channels];
-                reinterpret_cast<float*>(audioFrame->data[1])[j] = raw[i + j * channels + 1];
+                reinterpret_cast<float*>(audioFrame->data[0])[j] = resampled[i + j * channels];
+                reinterpret_cast<float*>(audioFrame->data[1])[j] = resampled[i + j * channels + 1];
             }
 
             if (avcodec_send_frame(audio_codec_context_encoder, audioFrame) < 0) {
@@ -295,8 +358,6 @@ namespace ffmpeg {
             av_init_packet(&audioPacket);
             audioPacket.data = nullptr;
             audioPacket.size = 0;
-
-            geode::log::debug("2 timebase {} {} {} {}", audio_codec_context_encoder->time_base.num, audio_codec_context_encoder->time_base.den, outputAudioStream->time_base.num, outputAudioStream->time_base.den);
 
             while (true) {
                 int ret = avcodec_receive_packet(audio_codec_context_encoder, &audioPacket);
