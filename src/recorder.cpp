@@ -255,7 +255,7 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_packet_unref(m_packet);
     }
 
-    av_frame_free(m_filteredFrame);
+    av_frame_free(&m_filteredFrame);
 
     return true;
 }
