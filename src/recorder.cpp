@@ -139,15 +139,8 @@ bool Recorder::init(const RenderSettings& settings) {
     }
 
     m_filteredFrame = av_frame_alloc();
-    m_filteredFrame->format = m_codecContext->pix_fmt;
-    m_filteredFrame->width = m_codecContext->width;
-    m_filteredFrame->height = m_codecContext->height;
-    if(av_image_alloc(m_filteredFrame->data, m_filteredFrame->linesize, m_filteredFrame->width, m_filteredFrame->height, m_codecContext->pix_fmt, 32) < 0) {
-        geode::log::error("Could not allocate raw picture buffer.");
-        return false;
-    }
 
-    m_packet = new AVPacket();
+    m_packet = av_packet_alloc();
 
     av_init_packet(m_packet);
     m_packet->data = NULL;
@@ -156,8 +149,8 @@ bool Recorder::init(const RenderSettings& settings) {
     int inputPixelFormat = (int)settings.m_pixelFormat;
 
     if(!settings.m_colorspaceFilters.empty()) {
-        AVFilterGraph* filterGraph = avfilter_graph_alloc();
-        if (!filterGraph) {
+        m_filterGraph = avfilter_graph_alloc();
+        if (!m_filterGraph) {
             geode::log::error("Could not allocate filter graph.");
             return false;
         }
@@ -173,24 +166,24 @@ bool Recorder::init(const RenderSettings& settings) {
                 m_codecContext->time_base.num, m_codecContext->time_base.den,
                 m_codecContext->sample_aspect_ratio.num, m_codecContext->sample_aspect_ratio.den);
 
-        if (avfilter_graph_create_filter(&m_buffersrcCtx, buffersrc, "in", args, nullptr, filterGraph) < 0 ||
-                avfilter_graph_create_filter(&m_buffersinkCtx, buffersink, "out", nullptr, nullptr, filterGraph) < 0 ||
-                avfilter_graph_create_filter(&m_colorspaceCtx, colorspace, "colorspace", settings.m_colorspaceFilters.c_str(), nullptr, filterGraph) < 0) {
+        if (avfilter_graph_create_filter(&m_buffersrcCtx, buffersrc, "in", args, nullptr, m_filterGraph) < 0 ||
+                avfilter_graph_create_filter(&m_buffersinkCtx, buffersink, "out", nullptr, nullptr, m_filterGraph) < 0 ||
+                avfilter_graph_create_filter(&m_colorspaceCtx, colorspace, "colorspace", settings.m_colorspaceFilters.c_str(), nullptr, m_filterGraph) < 0) {
             geode::log::error("Error creating filter contexts.");
-            avfilter_graph_free(&filterGraph);
+            avfilter_graph_free(&m_filterGraph);
             return false;
         }
 
         if (avfilter_link(m_buffersrcCtx, 0, m_colorspaceCtx, 0) < 0 ||
             avfilter_link(m_colorspaceCtx, 0, m_buffersinkCtx, 0) < 0) {
             geode::log::error("Error linking filters.");
-            avfilter_graph_free(&filterGraph);
+            avfilter_graph_free(&m_filterGraph);
             return false;
         }
 
-        if (avfilter_graph_config(filterGraph, nullptr) < 0) {
+        if (avfilter_graph_config(m_filterGraph, nullptr) < 0) {
             geode::log::error("Error configuring filter graph.");
-            avfilter_graph_free(&filterGraph);
+            avfilter_graph_free(&m_filterGraph);
             return false;
         }
 
@@ -253,6 +246,8 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_packet_unref(m_packet);
     }
 
+    av_frame_unref(m_filteredFrame);
+
     return true;
 }
 
@@ -295,7 +290,7 @@ void Recorder::stop() {
         av_frame_free(&m_filteredFrame);
     }
 
-    delete m_packet;
+    av_packet_free(&m_packet);
 }
 
 }
