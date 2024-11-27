@@ -259,10 +259,10 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
 void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
     int ret = av_buffersrc_add_frame(m_buffersrcCtx, inputFrame);
     if (ret < 0) {
-        std::cerr << "Error feeding frame to filter graph.\n";
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
         avfilter_graph_free(&m_filterGraph);
+        geode::log::error("Error while feeding frame to filter graph: {}", errbuf);
         return;
     }
 
