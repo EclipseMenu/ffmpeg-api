@@ -223,6 +223,8 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         sws_scale(
             m_swsCtx, m_filteredFrame->data, m_filteredFrame->linesize, 0, m_filteredFrame->height,
             m_convertedFrame->data, m_convertedFrame->linesize);
+
+        av_frame_unref(m_filteredFrame);
     }
     else {
         const uint8_t* srcData[1] = { frameData.data() };
@@ -253,11 +255,13 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_packet_unref(m_packet);
     }
 
+    av_frame_unref(m_convertedFrame);
+
     return true;
 }
 
 void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
-    int ret = av_buffersrc_add_frame(m_buffersrcCtx, inputFrame);
+    int ret = av_buffersrc_add_frame_flags(m_buffersrcCtx, inputFrame, AV_BUFFERSRC_FLAG_KEEP_REF);
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
