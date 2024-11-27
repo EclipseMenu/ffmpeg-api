@@ -276,8 +276,6 @@ void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             break;
         }
-
-        av_frame_unref(outputFrame);
     }
 }
 
