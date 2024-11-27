@@ -272,7 +272,17 @@ void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
         return;
     }
 
-    av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
+    while(true) {
+        ret = av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
+
+        outputFrame->time_base = av_buffersink_get_time_base(m_buffersinkCtx);
+
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+        }
+
+        av_frame_unref(outputFrame);
+    }
 }
 
 void Recorder::stop() {
