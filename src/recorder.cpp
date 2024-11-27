@@ -209,8 +209,6 @@ bool Recorder::init(const RenderSettings& settings) {
 
     m_init = true;
 
-    av_log_set_level(AV_LOG_DEBUG);
-
     return true;
 }
 
@@ -255,30 +253,17 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_packet_unref(m_packet);
     }
 
-    av_frame_free(&m_filteredFrame);
-
     return true;
 }
 
 void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
-    int ret = av_buffersrc_add_frame_flags(m_buffersrcCtx, inputFrame, 0);
-    if (ret < 0) {
-        char errbuf[AV_ERROR_MAX_STRING_SIZE];
-        av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+    if (av_buffersrc_add_frame(m_buffersrcCtx, inputFrame) < 0) {
+        std::cerr << "Error feeding frame to filter graph.\n";
         avfilter_graph_free(&m_filterGraph);
-        geode::log::error("Error while feeding frame to filter graph: {}", errbuf);
         return;
     }
 
-    while(true) {
-        ret = av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
-
-        outputFrame->time_base = av_buffersink_get_time_base(m_buffersinkCtx);
-
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            break;
-        }
-    }
+    av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
 }
 
 void Recorder::stop() {
@@ -307,7 +292,7 @@ void Recorder::stop() {
 
     if(m_filterGraph) {
         avfilter_graph_free(&m_filterGraph);
-        // av_frame_free(&m_filteredFrame);
+        av_frame_free(&m_filteredFrame);
     }
 
     delete m_packet;
