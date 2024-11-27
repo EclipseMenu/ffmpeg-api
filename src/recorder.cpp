@@ -209,6 +209,8 @@ bool Recorder::init(const RenderSettings& settings) {
 
     m_init = true;
 
+    av_log_set_level(AV_LOG_DEBUG);
+
     return true;
 }
 
@@ -261,7 +263,7 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
 }
 
 void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
-    int ret = av_buffersrc_add_frame_flags(m_buffersrcCtx, inputFrame, AV_BUFFERSRC_FLAG_KEEP_REF);
+    int ret = av_buffersrc_add_frame_flags(m_buffersrcCtx, inputFrame, 0);
     if (ret < 0) {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
