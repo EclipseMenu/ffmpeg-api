@@ -80,8 +80,7 @@ bool Recorder::init(const RenderSettings& settings) {
     m_codecContext->pix_fmt = AV_PIX_FMT_NONE;
     m_videoStream->time_base = m_codecContext->time_base;
 
-    const AVPixelFormat *pix_fmt = m_codec->pix_fmts;
-    if (pix_fmt) {
+    if (const AVPixelFormat *pix_fmt = m_codec->pix_fmts) {
         while (*pix_fmt != AV_PIX_FMT_NONE) {
             if(*pix_fmt == static_cast<AVPixelFormat>(settings.m_pixelFormat))
                 m_codecContext->pix_fmt = *pix_fmt;
@@ -142,8 +141,7 @@ bool Recorder::init(const RenderSettings& settings) {
 
     m_packet = av_packet_alloc();
 
-    av_init_packet(m_packet);
-    m_packet->data = NULL;
+    m_packet->data = nullptr;
     m_packet->size = 0;
 
     int inputPixelFormat = (int)settings.m_pixelFormat;
@@ -191,7 +189,7 @@ bool Recorder::init(const RenderSettings& settings) {
     }
 
     m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)inputPixelFormat, m_codecContext->width,
-        m_codecContext->height, m_codecContext->pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+        m_codecContext->height, m_codecContext->pix_fmt, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
 
     if (!m_swsCtx) {
         geode::log::error("Could not create sws context.");
@@ -253,12 +251,16 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
 
 void Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
     if (av_buffersrc_add_frame(m_buffersrcCtx, inputFrame) < 0) {
-        std::cerr << "Error feeding frame to filter graph.\n";
+        geode::log::error("Error feeding frame to filter graph.");
         avfilter_graph_free(&m_filterGraph);
         return;
     }
 
-    av_buffersink_get_frame(m_buffersinkCtx, outputFrame);
+    if (av_buffersink_get_frame(m_buffersinkCtx, outputFrame) < 0) {
+        geode::log::error("Error retrieving frame from filter graph.");
+        av_frame_unref(outputFrame);
+        return;
+    }
 }
 
 void Recorder::stop() {
@@ -288,6 +290,10 @@ void Recorder::stop() {
     if(m_filterGraph) {
         avfilter_graph_free(&m_filterGraph);
         av_frame_free(&m_filteredFrame);
+    }
+
+    if (m_hwDevice) {
+        av_buffer_unref(&m_hwDevice);
     }
 
     av_packet_free(&m_packet);

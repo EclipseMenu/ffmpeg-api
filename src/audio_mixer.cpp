@@ -147,8 +147,8 @@ std::vector<float> resampleAudio(const std::vector<float>& inputAudio, int input
 		return {};
 	}
 
-    const int chunkSize = 4096;
-    const int numChannels = 2;
+    constexpr int chunkSize = 4096;
+    constexpr int numChannels = 2;
 
     int maxOutputSamples = av_rescale_rnd(chunkSize, targetSampleRate, inputSampleRate, AV_ROUND_UP);
     std::vector<float> outputAudio;
@@ -193,13 +193,18 @@ namespace ffmpeg {
 
         std::vector<float> raw = readAudioFile(audioFile.string().c_str(), 44100, AV_SAMPLE_FMT_FLTP, &inputAudioParams);
 
-        mixVideoRaw(std::move(videoFile), raw, std::move(outputMp4File), inputAudioParams.sample_rate);
+        mixVideoRaw(videoFile, raw, outputMp4File);
 
         avformat_close_input(&wavFormatContext);
     }
 
-    void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate) {
-        const int frameSize = 1024; 
+    void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t) {
+        mixVideoRaw(videoFile, raw, outputMp4File);
+    }
+
+    void AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+        constexpr int frameSize = 1024;
+    	constexpr uint32_t sampleRate = 44100;
         
         AVFormatContext* videoFormatContext = nullptr;
         if (avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr) < 0) {
@@ -349,18 +354,17 @@ namespace ffmpeg {
                 continue;
             }
 
-            AVPacket audioPacket;
-            av_init_packet(&audioPacket);
-            audioPacket.data = nullptr;
-            audioPacket.size = 0;
+            AVPacket* audioPacket = av_packet_alloc();
+            audioPacket->data = nullptr;
+            audioPacket->size = 0;
 
             while (true) {
-                int ret = avcodec_receive_packet(audio_codec_context_encoder, &audioPacket);
+                int ret = avcodec_receive_packet(audio_codec_context_encoder, audioPacket);
                 if (ret == 0) {
-                    av_packet_rescale_ts(&audioPacket, audio_codec_context_encoder->time_base, outputAudioStream->time_base);
-                    audioPacket.stream_index = 1;
-                    av_interleaved_write_frame(outputFormatContext, &audioPacket);
-                    av_packet_unref(&audioPacket);
+                    av_packet_rescale_ts(audioPacket, audio_codec_context_encoder->time_base, outputAudioStream->time_base);
+                    audioPacket->stream_index = 1;
+                    av_interleaved_write_frame(outputFormatContext, audioPacket);
+                    av_packet_unref(audioPacket);
                 } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                     break;
                 else {

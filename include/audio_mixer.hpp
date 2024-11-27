@@ -24,9 +24,11 @@ public:
     void mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File);
 
     /**
+     * @deprecated sampleRate parameter is no longer used. Use the other overload of this function instead.
+     *
      * @brief Mixes a video file and raw audio data into a single MP4 output.
      *
-     * This function takes an input video file and raw audio data (in the form of a vector of floating-point samples), 
+     * This function takes an input video file and raw audio data (in the form of a vector of floating-point samples),
      * and merges them into a single MP4 output file.
      *
      * @param videoFile The path to the input video file.
@@ -37,7 +39,22 @@ public:
      * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    void mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate);
+    [[deprecated]] void mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate);
+
+    /**
+     * @brief Mixes a video file and raw audio data into a single MP4 output.
+     *
+     * This function takes an input video file and raw audio data (in the form of a vector of floating-point samples),
+     * and merges them into a single MP4 output file.
+     *
+     * @param videoFile The path to the input video file.
+     * @param raw A vector containing the raw audio data (floating-point samples).
+     * @param outputMp4File The path where the output MP4 file will be saved.
+     *
+     * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
+     * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
+     */
+    void mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File);
 };
 
 }
