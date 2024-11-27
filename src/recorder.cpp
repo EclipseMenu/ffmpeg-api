@@ -225,8 +225,6 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         sws_scale(
             m_swsCtx, m_filteredFrame->data, m_filteredFrame->linesize, 0, m_filteredFrame->height,
             m_convertedFrame->data, m_convertedFrame->linesize);
-
-        av_frame_unref(m_filteredFrame);
     }
     else {
         const uint8_t* srcData[1] = { frameData.data() };
@@ -256,8 +254,6 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_interleaved_write_frame(m_formatContext, m_packet);
         av_packet_unref(m_packet);
     }
-
-    av_frame_unref(m_convertedFrame);
 
     return true;
 }
