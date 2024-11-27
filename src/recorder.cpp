@@ -255,8 +255,7 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_packet_unref(m_packet);
     }
 
-    av_frame_unref(m_convertedFrame);
-    av_frame_unref(m_filteredFrame);
+    av_frame_free(m_filteredFrame);
 
     return true;
 }
@@ -308,7 +307,7 @@ void Recorder::stop() {
 
     if(m_filterGraph) {
         avfilter_graph_free(&m_filterGraph);
-        av_frame_free(&m_filteredFrame);
+        // av_frame_free(&m_filteredFrame);
     }
 
     delete m_packet;
