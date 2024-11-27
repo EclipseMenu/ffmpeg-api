@@ -129,23 +129,23 @@ bool Recorder::init(const RenderSettings& settings) {
         return false;
     }
 
-    m_convertedFrame = av_frame_alloc();
-    m_convertedFrame->format = m_codecContext->pix_fmt;
-    m_convertedFrame->width = m_codecContext->width;
-    m_convertedFrame->height = m_codecContext->height;
-    if(av_image_alloc(m_convertedFrame->data, m_convertedFrame->linesize, m_convertedFrame->width, m_convertedFrame->height, m_codecContext->pix_fmt, 32) < 0) {
-        geode::log::error("Could not allocate raw picture buffer.");
-        return false;
-    }
+    // m_convertedFrame = av_frame_alloc();
+    // m_convertedFrame->format = m_codecContext->pix_fmt;
+    // m_convertedFrame->width = m_codecContext->width;
+    // m_convertedFrame->height = m_codecContext->height;
+    // if(av_image_alloc(m_convertedFrame->data, m_convertedFrame->linesize, m_convertedFrame->width, m_convertedFrame->height, m_codecContext->pix_fmt, 32) < 0) {
+    //     geode::log::error("Could not allocate raw picture buffer.");
+    //     return false;
+    // }
 
-    m_filteredFrame = av_frame_alloc();
-    m_filteredFrame->format = m_codecContext->pix_fmt;
-    m_filteredFrame->width = m_codecContext->width;
-    m_filteredFrame->height = m_codecContext->height;
-    if(av_image_alloc(m_filteredFrame->data, m_filteredFrame->linesize, m_filteredFrame->width, m_filteredFrame->height, m_codecContext->pix_fmt, 32) < 0) {
-        geode::log::error("Could not allocate raw picture buffer.");
-        return false;
-    }
+    // m_filteredFrame = av_frame_alloc();
+    // m_filteredFrame->format = m_codecContext->pix_fmt;
+    // m_filteredFrame->width = m_codecContext->width;
+    // m_filteredFrame->height = m_codecContext->height;
+    // if(av_image_alloc(m_filteredFrame->data, m_filteredFrame->linesize, m_filteredFrame->width, m_filteredFrame->height, m_codecContext->pix_fmt, 32) < 0) {
+    //     geode::log::error("Could not allocate raw picture buffer.");
+    //     return false;
+    // }
 
     m_packet = new AVPacket();
 
@@ -254,6 +254,9 @@ bool Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
         av_interleaved_write_frame(m_formatContext, m_packet);
         av_packet_unref(m_packet);
     }
+
+    av_frame_unref(m_convertedFrame);
+    av_frame_unref(m_filteredFrame);
 
     return true;
 }
