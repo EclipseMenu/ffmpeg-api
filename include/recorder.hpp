@@ -3,6 +3,8 @@
 #include "render_settings.hpp"
 #include "export.hpp"
 
+#include <Geode/Result.hpp>
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -35,7 +37,7 @@ public:
      * 
      * @return true if initialization is successful, false otherwise.
      */
-    bool init(const RenderSettings& settings);
+    geode::Result<void> init(const RenderSettings& settings);
     /**
      * @brief Stops the recording process and finalizes the output file.
      *
@@ -57,7 +59,7 @@ public:
      * 
      * @warning Ensure that the frameData size matches the expected dimensions of the frame.
      */
-    bool writeFrame(const std::vector<uint8_t>& frameData);
+    geode::Result<void> writeFrame(const std::vector<uint8_t>& frameData);
 
     /**
      * @brief Retrieves a list of available codecs for video encoding.
@@ -70,7 +72,7 @@ public:
     std::vector<std::string> getAvailableCodecs();
 
 private:
-    void filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
+    geode::Result<void> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
 
 private:
     AVFormatContext* m_formatContext = nullptr;

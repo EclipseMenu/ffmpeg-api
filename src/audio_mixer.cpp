@@ -1,7 +1,5 @@
 #include "audio_mixer.hpp"
-
-#include <iostream>
-#include <utility>
+#include "utils.hpp"
 
 extern "C" {
     #include <libavcodec/avcodec.h>
@@ -10,18 +8,15 @@ extern "C" {
 }
 
 //https://gist.github.com/royshil/fff30890c7c19a4889f0a148101c9dff
-std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVSampleFormat targetSampleFormat, AVCodecParameters* outCodecParams)
+geode::Result<std::vector<float>> readAudioFile(const char *filename, int targetSampleRate, AVSampleFormat targetSampleFormat, AVCodecParameters* outCodecParams)
 {
+    int ret = 0;
 	AVFormatContext *formatContext = nullptr;
-	if (avformat_open_input(&formatContext, filename, nullptr, nullptr) != 0) {
-		geode::log::error("Error opening file");
-		return {};
-	}
+	if (ret = avformat_open_input(&formatContext, filename, nullptr, nullptr); ret != 0)
+		return geode::Err("Error opening file: " + ffmpeg::utils::getErrorString(ret));
 
-	if (avformat_find_stream_info(formatContext, nullptr) < 0) {
-		geode::log::error("Error finding stream information");
-		return {};
-	}
+	if (ret = avformat_find_stream_info(formatContext, nullptr); ret < 0)
+        return geode::Err("Error finding stream information: " + ffmpeg::utils::getErrorString(ret));
 
 	int audioStreamIndex = -1;
 	for (unsigned int i = 0; i < formatContext->nb_streams; i++) {
@@ -31,33 +26,23 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 		}
 	}
 
-	if (audioStreamIndex == -1) {
-		geode::log::error("No audio stream found");
-		return {};
-	}
+	if (audioStreamIndex == -1)
+		return geode::Err("No audio stream found");
 
 	AVCodecParameters *codecParams = formatContext->streams[audioStreamIndex]->codecpar;
 	const AVCodec *codec = avcodec_find_decoder(codecParams->codec_id);
-	if (!codec) {
-		geode::log::error("Decoder not found");
-		return {};
-	}
+	if (!codec)
+		return geode::Err("Decoder not found");
 
 	AVCodecContext *codecContext = avcodec_alloc_context3(codec);
-	if (!codecContext) {
-		geode::log::error("Failed to allocate codec context");
-		return {};
-	}
+	if (!codecContext)
+		return geode::Err("Failed to allocate codec context");
 
-	if (avcodec_parameters_to_context(codecContext, codecParams) < 0) {
-		geode::log::error("Failed to copy codec parameters to codec context");
-		return {};
-	}
+	if (ret = avcodec_parameters_to_context(codecContext, codecParams); ret < 0)
+		return geode::Err("Failed to copy codec parameters to codec context: " + ffmpeg::utils::getErrorString(ret));
 
-	if (avcodec_open2(codecContext, codec, nullptr) < 0) {
-		geode::log::error("Failed to open codec");
-		return {};
-	}
+	if (ret = avcodec_open2(codecContext, codec, nullptr); ret < 0)
+		return geode::Err("Failed to open codec: " + ffmpeg::utils::getErrorString(ret));
 
     *outCodecParams = *codecParams;
 
@@ -67,23 +52,15 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 	AVChannelLayout ch_layout;
     av_channel_layout_from_string(&ch_layout, "2 channels");
 	SwrContext *swr = nullptr;
-	int ret;
 	ret = swr_alloc_set_opts2(&swr, &ch_layout, targetSampleFormat, targetSampleRate,
 				  &(codecContext->ch_layout), codecContext->sample_fmt,
 				  codecContext->sample_rate, 0, nullptr);
-	if (ret < 0) {
-		char errbuf[AV_ERROR_MAX_STRING_SIZE];
-		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-		geode::log::error("Failed to set up swr context: {}", errbuf);
-		return {};
-	}
+	if (ret < 0) 
+        return geode::Err("Failed to set up swr context: " + ffmpeg::utils::getErrorString(ret));
+    
 	ret = swr_init(swr);
-	if (ret < 0) {
-		char errbuf[AV_ERROR_MAX_STRING_SIZE];
-		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-		geode::log::error("Failed to initialize swr context: {}", errbuf);
-		return {};
-	}
+	if (ret < 0)
+        return geode::Err("Failed to initialize swr context: " + ffmpeg::utils::getErrorString(ret));
 
 	std::vector<float> audioFrames;
 
@@ -96,13 +73,9 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
                 while (avcodec_receive_frame(codecContext, frame) == 0) {
                     int ret = swr_convert(swr, reinterpret_cast<uint8_t **>(convertBuffer), 4096,
                                         frame->data, frame->nb_samples);
-                    if (ret < 0) {
-                        char errbuf[AV_ERROR_MAX_STRING_SIZE];
-                        av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-                        geode::log::error("Failed to convert audio frame: {}", errbuf);
-                        return {};
-                    }
-
+                    if (ret < 0) 
+                        return geode::Err("Failed to convert audio frame: " + ffmpeg::utils::getErrorString(ret));
+                    
                     for (int i = 0; i < ret; ++i) {
                         audioFrames.push_back(convertBuffer[0][i]);
                         audioFrames.push_back(convertBuffer[1][i]);
@@ -120,10 +93,10 @@ std::vector<float> readAudioFile(const char *filename, int targetSampleRate, AVS
 	avcodec_free_context(&codecContext);
 	avformat_close_input(&formatContext);
 
-	return audioFrames;
+	return geode::Ok(audioFrames);
 }
 
-std::vector<float> resampleAudio(const std::vector<float>& inputAudio, int inputSampleRate, int targetSampleRate) {
+geode::Result<std::vector<float>> resampleAudio(const std::vector<float>& inputAudio, int inputSampleRate, int targetSampleRate) {
     SwrContext *swrCtx = nullptr;
 	int ret;
     AVChannelLayout ch_layout;
@@ -133,19 +106,12 @@ std::vector<float> resampleAudio(const std::vector<float>& inputAudio, int input
         targetSampleRate, &ch_layout, AV_SAMPLE_FMT_FLT,
         inputSampleRate, 0, nullptr);
 
-    if (ret < 0) {
-		char errbuf[AV_ERROR_MAX_STRING_SIZE];
-		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-		geode::log::error("Failed to set up swr context: {}", errbuf);
-		return {};
-	}
+    if (ret < 0) 
+        return geode::Err("Failed to set up swr context: " + ffmpeg::utils::getErrorString(ret));
+    
 	ret = swr_init(swrCtx);
-	if (ret < 0) {
-		char errbuf[AV_ERROR_MAX_STRING_SIZE];
-		av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-		geode::log::error("Failed to initialize swr context: {}", errbuf);
-		return {};
-	}
+	if (ret < 0)
+        return geode::Err("Failed to initialize swr context: " + ffmpeg::utils::getErrorString(ret));
 
     constexpr int chunkSize = 4096;
     constexpr int numChannels = 2;
@@ -164,67 +130,64 @@ std::vector<float> resampleAudio(const std::vector<float>& inputAudio, int input
         int inputSamples = currentChunkSize / numChannels;
 
         int resampledSamples = swr_convert(swrCtx, outData, maxOutputSamples, inData, inputSamples);
-        if (ret < 0) {
-            char errbuf[AV_ERROR_MAX_STRING_SIZE];
-            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-            geode::log::error("Failed to convert audio frame: {}", errbuf);
-            return {};
-        }
+        if (ret < 0)
+            return geode::Err("Failed to convert audio frame: " + ffmpeg::utils::getErrorString(ret));
 
         outputAudio.insert(outputAudio.end(), outputChunk.begin(), outputChunk.begin() + resampledSamples * numChannels);
     }
 
     swr_free(&swrCtx);
 
-    return outputAudio;
+    return geode::Ok(outputAudio);
 }
 
 namespace ffmpeg {
-    void AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
+    geode::Result<void> AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
         constexpr int frameSize = 1024;
 
         AVFormatContext* wavFormatContext = nullptr;
-        if (avformat_open_input(&wavFormatContext, audioFile.string().c_str(), nullptr, nullptr) < 0) {
-            geode::log::error("Could not open file.");
-            return;
-        }
+        int ret = 0;
+        if (ret = avformat_open_input(&wavFormatContext, audioFile.string().c_str(), nullptr, nullptr); ret < 0)
+            return geode::Err("Could not open file: " + utils::getErrorString(ret));
 
         AVCodecParameters inputAudioParams{};
 
-        std::vector<float> raw = readAudioFile(audioFile.string().c_str(), 44100, AV_SAMPLE_FMT_FLTP, &inputAudioParams);
+        geode::Result<std::vector<float>> raw = readAudioFile(audioFile.string().c_str(), 44100, AV_SAMPLE_FMT_FLTP, &inputAudioParams);
 
-        mixVideoRaw(videoFile, raw, outputMp4File);
+        if(raw.isErr())
+            return geode::Err(raw.unwrapErr());
+
+        geode::Result<void> res = mixVideoRaw(videoFile, raw.unwrap(), outputMp4File);
 
         avformat_close_input(&wavFormatContext);
+
+        return res;
     }
 
     void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t) {
         mixVideoRaw(videoFile, raw, outputMp4File);
     }
 
-    void AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+    geode::Result<void> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
         constexpr int frameSize = 1024;
     	constexpr uint32_t sampleRate = 44100;
+
+        int ret = 0;
         
         AVFormatContext* videoFormatContext = nullptr;
-        if (avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr) < 0) {
-            geode::log::error("Could not open MP4 file.");
-            return;
-        }
+        if (ret = avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr); ret < 0)
+            return geode::Err("Could not open MP4 file: " + utils::getErrorString(ret));
 
         AVFormatContext* outputFormatContext = nullptr;
-        avformat_alloc_output_context2(&outputFormatContext, nullptr, nullptr, outputMp4File.string().c_str());
+        ret = avformat_alloc_output_context2(&outputFormatContext, nullptr, nullptr, outputMp4File.string().c_str());
         if (!outputFormatContext) {
-            geode::log::error("Could not create output context.");
             avformat_close_input(&videoFormatContext);
-            return;
+            return geode::Err("Could not create output context: " + utils::getErrorString(ret));
         }
 
         AVStream* outputVideoStream = avformat_new_stream(outputFormatContext, nullptr);
-        if (!outputVideoStream) {
-            geode::log::error("Failed to create video stream.");
-            return;
-        }
+        if (!outputVideoStream)
+            return geode::Err("Failed to create video stream.");
 
         int videoStreamIndex = -1;
         for (unsigned int i = 0; i < videoFormatContext->nb_streams; i++) {
@@ -239,10 +202,8 @@ namespace ffmpeg {
         outputVideoStream->codecpar->codec_tag = 0;
 
         AVStream* outputAudioStream = avformat_new_stream(outputFormatContext, nullptr);
-        if (!outputAudioStream) {
-            geode::log::error("Failed to create audio stream.");
-            return;
-        }
+        if (!outputAudioStream)
+            return geode::Err("Failed to create audio stream.");
 
         constexpr int channels = 2;
 
@@ -250,12 +211,12 @@ namespace ffmpeg {
         auto duration = static_cast<double>(videoFormatContext->duration) / AV_TIME_BASE;
         auto newSampleRate = raw.size() / duration / channels;
 
-        std::vector<float> resampled = resampleAudio(raw, newSampleRate, 44100);
+        geode::Result<std::vector<float>> resampledRes = resampleAudio(raw, newSampleRate, 44100);
 
-        if(resampled.empty()) {
-            geode::log::error("Failed to resample audio.");
-            return;
-        }
+        if(resampledRes.isErr())
+            return geode::Err(resampledRes.unwrapErr());
+
+        auto resampled = resampledRes.unwrap();
 
         outputAudioStream->codecpar->codec_tag = 0;
         outputAudioStream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
@@ -275,37 +236,31 @@ namespace ffmpeg {
 	    const AVCodec *audioCodec = avcodec_find_encoder(videoCodecParams->codec_id);
         AVCodecContext *audio_codec_context_encoder = avcodec_alloc_context3(audioCodec);
 
-        if (avcodec_parameters_to_context(audio_codec_context_encoder, videoCodecParams) < 0) {
-            geode::log::error("Failed to copy codec parameters to codec context.");
-            return;
-        }
+        if (ret = avcodec_parameters_to_context(audio_codec_context_encoder, videoCodecParams); ret < 0)
+            return geode::Err("Could not copy codec parameters to codec context: " + utils::getErrorString(ret));
 
         audio_codec_context_encoder->sample_rate = sampleRate;
         audio_codec_context_encoder->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
         audio_codec_context_encoder->sample_fmt = AV_SAMPLE_FMT_FLTP;
         audio_codec_context_encoder->time_base = AVRational{1, static_cast<int>(sampleRate)};
 
-        int ret = avcodec_open2(audio_codec_context_encoder, audioCodec, nullptr);
-        if (ret < 0) {
-            geode::log::error("Failed to open encoder.");
-            return;
-        }
+        ret = avcodec_open2(audio_codec_context_encoder, audioCodec, nullptr);
+        if (ret < 0)
+            return geode::Err("Could not open encoder: " + utils::getErrorString(ret));
 
         if (!(outputFormatContext->oformat->flags & AVFMT_NOFILE)) {
-            if (avio_open(&outputFormatContext->pb, outputMp4File.string().c_str(), AVIO_FLAG_WRITE) < 0) {
-                geode::log::error("Could not open output file.");
+            if (ret = avio_open(&outputFormatContext->pb, outputMp4File.string().c_str(), AVIO_FLAG_WRITE); ret < 0) {
                 avformat_free_context(outputFormatContext);
                 avformat_close_input(&videoFormatContext);
-                return;
+                return geode::Err("Could not open output file: " + utils::getErrorString(ret));
             }
         }
 
-        if (avformat_write_header(outputFormatContext, nullptr) < 0) {
-            geode::log::error("Could not write header to output file.");
+        if (ret = avformat_write_header(outputFormatContext, nullptr); ret < 0) {
             avio_closep(&outputFormatContext->pb);
             avformat_free_context(outputFormatContext);
             avformat_close_input(&videoFormatContext);
-            return;
+            return geode::Err("Could not write header to output file: " + utils::getErrorString(ret));
         }
         
         AVPacket packet;
@@ -323,10 +278,8 @@ namespace ffmpeg {
         int pts = 0;
 
         AVFrame* audioFrame = av_frame_alloc();
-        if (!audioFrame) {
-            geode::log::error("Could not allocate audio frame.");
-            return;
-        }
+        if (!audioFrame)
+            return geode::Err("Could not allocate audio frame.");
 
         audioFrame->format = AV_SAMPLE_FMT_FLTP;
         audioFrame->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
@@ -339,20 +292,16 @@ namespace ffmpeg {
 
             pts += samplesToEncode;
 
-            if (av_frame_get_buffer(audioFrame, 0) < 0) {
-                geode::log::error("Could not allocate audio buffer.");
-                continue;
-            }
+            if (ret = av_frame_get_buffer(audioFrame, 0); ret < 0)
+                return geode::Err("Could not allocate audio buffer: " + utils::getErrorString(ret));
 
             for (int j = 0; j < samplesToEncode; ++j) {
                 reinterpret_cast<float*>(audioFrame->data[0])[j] = resampled[i + j * channels];
                 reinterpret_cast<float*>(audioFrame->data[1])[j] = resampled[i + j * channels + 1];
             }
 
-            if (avcodec_send_frame(audio_codec_context_encoder, audioFrame) < 0) {
-                geode::log::error("Error sending audio frame to encoder.");
-                continue;
-            }
+            if (ret = avcodec_send_frame(audio_codec_context_encoder, audioFrame); ret < 0)
+                return geode::Err("Could not send audio frame to encoder: " + utils::getErrorString(ret));
 
             AVPacket* audioPacket = av_packet_alloc();
             audioPacket->data = nullptr;
@@ -367,10 +316,8 @@ namespace ffmpeg {
                     av_packet_unref(audioPacket);
                 } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                     break;
-                else {
-                    geode::log::error("Error receiving audio packet.");
-                    break;
-                }
+                else
+                    return geode::Err("Could not receive audio packet: " + utils::getErrorString(ret));
             }
         }
 
@@ -383,5 +330,7 @@ namespace ffmpeg {
         }
         avformat_free_context(outputFormatContext);
         avformat_close_input(&videoFormatContext);
+
+        return geode::Ok();
     }
 }

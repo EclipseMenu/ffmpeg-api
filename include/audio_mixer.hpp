@@ -2,6 +2,8 @@
 
 #include "export.hpp"
 
+#include <Geode/Result.hpp>
+
 #include <filesystem>
 
 namespace ffmpeg {
@@ -21,7 +23,7 @@ public:
      * @warning The audio file is expected to contain stereo (dual-channel) audio. Using other formats might lead to unexpected results.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    void mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File);
+    geode::Result<void> mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File);
 
     /**
      * @deprecated sampleRate parameter is no longer used. Use the other overload of this function instead.
@@ -54,7 +56,7 @@ public:
      * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    void mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File);
+    geode::Result<void> mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File);
 };
 
 }

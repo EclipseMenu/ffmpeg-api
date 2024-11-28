@@ -14,6 +14,7 @@ project(ffmpeg-api VERSION 1.0.0)
 add_library(${PROJECT_NAME} SHARED
     src/recorder.cpp
     src/audio_mixer.cpp
+    src/utils.cpp
     # Add any extra C++ source files here
 )
 
