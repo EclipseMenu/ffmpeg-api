@@ -141,8 +141,8 @@ geode::Result<std::vector<float>> resampleAudio(const std::vector<float>& inputA
     return geode::Ok(outputAudio);
 }
 
-namespace ffmpeg {
-    geode::Result<void> AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
+BEGIN_FFMPEG_NAMESPACE_V
+    geode::Result<> AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
         constexpr int frameSize = 1024;
 
         AVFormatContext* wavFormatContext = nullptr;
@@ -157,23 +157,19 @@ namespace ffmpeg {
         if(raw.isErr())
             return geode::Err(raw.unwrapErr());
 
-        geode::Result<void> res = mixVideoRaw(videoFile, raw.unwrap(), outputMp4File);
+        geode::Result<> res = mixVideoRaw(videoFile, raw.unwrap(), outputMp4File);
 
         avformat_close_input(&wavFormatContext);
 
         return res;
     }
 
-    void AudioMixer::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t) {
-        mixVideoRaw(videoFile, raw, outputMp4File);
-    }
-
-    geode::Result<void> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+    geode::Result<> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
         constexpr int frameSize = 1024;
     	constexpr uint32_t sampleRate = 44100;
 
         int ret = 0;
-        
+
         AVFormatContext* videoFormatContext = nullptr;
         if (ret = avformat_open_input(&videoFormatContext, videoFile.string().c_str(), nullptr, nullptr); ret < 0)
             return geode::Err("Could not open MP4 file: " + utils::getErrorString(ret));
@@ -227,7 +223,7 @@ namespace ffmpeg {
         outputAudioStream->codecpar->bits_per_coded_sample = 16;
         outputAudioStream->codecpar->format = AVSampleFormat::AV_SAMPLE_FMT_FLTP;
         outputAudioStream->codecpar->frame_size = frameSize;
-        
+
         outputFormatContext->audio_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
         outputFormatContext->audio_codec_id = AV_CODEC_ID_AAC;
         outputFormatContext->bit_rate = 128000;
@@ -333,4 +329,4 @@ namespace ffmpeg {
 
         return geode::Ok();
     }
-}
+END_FFMPEG_NAMESPACE_V

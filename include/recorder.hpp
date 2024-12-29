@@ -22,7 +22,7 @@ class AVFilterContext;
 class AVFilter;
 class AVFilterGraph;
 
-namespace ffmpeg {
+BEGIN_FFMPEG_NAMESPACE_V
 
 class FFMPEG_API_DLL Recorder {
 public:
@@ -37,7 +37,7 @@ public:
      * 
      * @return true if initialization is successful, false otherwise.
      */
-    geode::Result<void> init(const RenderSettings& settings);
+    geode::Result<> init(const RenderSettings& settings);
     /**
      * @brief Stops the recording process and finalizes the output file.
      *
@@ -59,7 +59,7 @@ public:
      * 
      * @warning Ensure that the frameData size matches the expected dimensions of the frame.
      */
-    geode::Result<void> writeFrame(const std::vector<uint8_t>& frameData);
+    geode::Result<> writeFrame(const std::vector<uint8_t>& frameData);
 
     /**
      * @brief Retrieves a list of available codecs for video encoding.
@@ -69,10 +69,10 @@ public:
      * 
      * @return A vector representing the names of available codecs.
      */
-    std::vector<std::string> getAvailableCodecs();
+    static std::vector<std::string> getAvailableCodecs();
 
 private:
-    geode::Result<void> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
+    geode::Result<> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
 
 private:
     AVFormatContext* m_formatContext = nullptr;
@@ -83,7 +83,7 @@ private:
     AVFrame* m_frame = nullptr;
     AVFrame* m_convertedFrame = nullptr;
     AVFrame* m_filteredFrame = nullptr;
-    AVPacket* m_packet;
+    AVPacket* m_packet = nullptr;
     SwsContext* m_swsCtx = nullptr;
     AVFilterGraph* m_filterGraph = nullptr;
     AVFilterContext* m_buffersrcCtx = nullptr;
@@ -94,4 +94,4 @@ private:
     bool m_init = false;
 };
 
-}
+END_FFMPEG_NAMESPACE_V

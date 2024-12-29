@@ -11,7 +11,7 @@ extern "C" {
     #include <libavfilter/buffersink.h>
 }
 
-namespace ffmpeg {
+BEGIN_FFMPEG_NAMESPACE_V
 
 std::vector<std::string> Recorder::getAvailableCodecs() {
     std::vector<std::string> vec;
@@ -39,7 +39,7 @@ const AVCodec* getCodecByName(const std::string& name) {
     return nullptr;
 }
 
-geode::Result<void> Recorder::init(const RenderSettings& settings) {
+geode::Result<> Recorder::init(const RenderSettings& settings) {
     int ret = avformat_alloc_output_context2(&m_formatContext, NULL, NULL, settings.m_outputFile.string().c_str());
     if (!m_formatContext)
         return geode::Err("Could not create output context: " + utils::getErrorString(ret));
@@ -186,7 +186,7 @@ geode::Result<void> Recorder::init(const RenderSettings& settings) {
     return geode::Ok();
 }
 
-geode::Result<void> Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
+geode::Result<> Recorder::writeFrame(const std::vector<uint8_t>& frameData) {
     if (!m_init || !m_frame)
         return geode::Err("Recorder is not initialized.");
 
@@ -195,7 +195,7 @@ geode::Result<void> Recorder::writeFrame(const std::vector<uint8_t>& frameData) 
 
     if(m_buffersrcCtx) {
         std::memcpy(m_frame->data[0], frameData.data(), frameData.size());
-        geode::Result<void> res = filterFrame(m_frame, m_filteredFrame);
+        geode::Result<> res = filterFrame(m_frame, m_filteredFrame);
 
         if(res.isErr())
             return res;
@@ -238,7 +238,7 @@ geode::Result<void> Recorder::writeFrame(const std::vector<uint8_t>& frameData) 
     return geode::Ok();
 }
 
-geode::Result<void> Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
+geode::Result<> Recorder::filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) {
     int ret = 0;
     if (ret = av_buffersrc_add_frame(m_buffersrcCtx, inputFrame); ret < 0) {
         avfilter_graph_free(&m_filterGraph);
@@ -289,4 +289,4 @@ void Recorder::stop() {
     av_packet_free(&m_packet);
 }
 
-}
+END_FFMPEG_NAMESPACE_V
