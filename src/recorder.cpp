@@ -68,6 +68,9 @@ geode::Result<> Recorder::init(const RenderSettings& settings) {
     m_codecContext->pix_fmt = AV_PIX_FMT_NONE;
     m_videoStream->time_base = m_codecContext->time_base;
 
+    if(!m_codecContext->pix_fmt)
+        return geode::Err("Codec does not have any supported pixel formats.");
+
     if (const AVPixelFormat *pix_fmt = m_codec->pix_fmts) {
         while (*pix_fmt != AV_PIX_FMT_NONE) {
             if(*pix_fmt == static_cast<AVPixelFormat>(settings.m_pixelFormat))
@@ -75,7 +78,6 @@ geode::Result<> Recorder::init(const RenderSettings& settings) {
             ++pix_fmt;
         }
     }
-
     if(m_codecContext->pix_fmt == AV_PIX_FMT_NONE) {
         geode::log::info("Codec {} does not support pixel format, defaulting to codec's format", settings.m_codec);
         m_codecContext->pix_fmt = m_codec->pix_fmts[0];
