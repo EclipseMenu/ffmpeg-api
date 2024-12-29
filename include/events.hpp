@@ -27,9 +27,9 @@ namespace impl {
 
     class InitRecorderEvent : public geode::Event {
     public:
-        InitRecorderEvent(void* ptr, RenderSettings&& settings) {
+        InitRecorderEvent(void* ptr, const RenderSettings* settings) {
             m_ptr = ptr;
-            m_renderSettings = std::move(settings);
+            m_renderSettings = settings;
         }
 
         void setResult(geode::Result<>&& result) {m_result = std::move(result);}
@@ -37,12 +37,12 @@ namespace impl {
 
         void* getPtr() const {return m_ptr;}
 
-        const RenderSettings& getRenderSettings() {return m_renderSettings;}
+        const RenderSettings& getRenderSettings() const {return *m_renderSettings;}
 
     private:
-        RenderSettings m_renderSettings;
+        const RenderSettings* m_renderSettings;
         void* m_ptr;
-        geode::Result<> m_result = geode::Ok();
+        geode::Result<> m_result = DEFAULT_RESULT_ERROR;
     };
 
     class StopRecorderEvent : public geode::Event {
@@ -85,45 +85,45 @@ namespace impl {
 
     class MixVideoAudioEvent : public geode::Event {
     public:
-        MixVideoAudioEvent(std::filesystem::path&& videoFile, std::filesystem::path&& audioFile, std::filesystem::path&& outputMp4File) {
-            m_videoFile = std::move(videoFile);
-            m_audioFile = std::move(audioFile);
-            m_outputMp4File = std::move(outputMp4File);
+        MixVideoAudioEvent(const std::filesystem::path& videoFile, const std::filesystem::path& audioFile, const std::filesystem::path& outputMp4File) {
+            m_videoFile = &videoFile;
+            m_audioFile = &audioFile;
+            m_outputMp4File = &outputMp4File;
         }
 
         void setResult(geode::Result<>&& result) {m_result = std::move(result);}
         geode::Result<> getResult() {return m_result;}
 
-        std::filesystem::path const& getVideoFile() {return m_videoFile;}
-        std::filesystem::path const& getAudioFile() {return m_audioFile;}
-        std::filesystem::path const& getOutputMp4File() {return m_outputMp4File;}
+        std::filesystem::path const& getVideoFile() const {return *m_videoFile;}
+        std::filesystem::path const& getAudioFile() const {return *m_audioFile;}
+        std::filesystem::path const& getOutputMp4File() const {return *m_outputMp4File;}
 
     private:
-        std::filesystem::path m_videoFile;
-        std::filesystem::path m_audioFile;
-        std::filesystem::path m_outputMp4File;
+        const std::filesystem::path* m_videoFile;
+        const std::filesystem::path* m_audioFile;
+        const std::filesystem::path* m_outputMp4File;
         geode::Result<> m_result = DEFAULT_RESULT_ERROR;
     };
 
     class MixVideoRawEvent : public geode::Event {
     public:
-        MixVideoRawEvent(std::filesystem::path&& videoFile, const std::vector<float>& raw, std::filesystem::path&& outputMp4File) {
-            m_videoFile = std::move(videoFile);
+        MixVideoRawEvent(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path& outputMp4File) {
+            m_videoFile = &videoFile;
             m_raw = &raw;
-            m_outputMp4File = std::move(outputMp4File);
+            m_outputMp4File = &outputMp4File;
         }
 
         void setResult(const geode::Result<>& result) {m_result = geode::Result(result);}
         geode::Result<> getResult() {return m_result;}
 
-        std::filesystem::path const& getVideoFile() const {return m_videoFile;}
+        std::filesystem::path const& getVideoFile() const {return *m_videoFile;}
         std::vector<float> const& getRaw() const {return *m_raw;}
-        std::filesystem::path const& getOutputMp4File() const {return m_outputMp4File;}
+        std::filesystem::path const& getOutputMp4File() const {return *m_outputMp4File;}
 
     private:
-        std::filesystem::path m_videoFile;
+        const std::filesystem::path* m_videoFile;
         const std::vector<float>* m_raw;
-        std::filesystem::path m_outputMp4File;
+        const std::filesystem::path* m_outputMp4File;
         geode::Result<> m_result = DEFAULT_RESULT_ERROR;
     };
 #undef DEFAULT_RESULT_ERROR
@@ -142,6 +142,8 @@ public:
         deleteEvent.post();
     }
 
+    bool isValid() const {return m_ptr != nullptr;}
+
     /**
      * @brief Initializes the Recorder with the specified rendering settings.
      *
@@ -153,8 +155,8 @@ public:
      * 
      * @return true if initialization is successful, false otherwise.
      */
-    geode::Result<> init(RenderSettings&& settings) {
-        impl::InitRecorderEvent initEvent(m_ptr, std::move(settings));
+    geode::Result<> init(RenderSettings const& settings) {
+        impl::InitRecorderEvent initEvent(m_ptr, &settings);
         initEvent.post();
         return initEvent.getResult();
     }
@@ -221,8 +223,8 @@ public:
      * @warning The audio file is expected to contain stereo (dual-channel) audio. Using other formats might lead to unexpected results.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    static geode::Result<> mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
-        impl::MixVideoAudioEvent mixEvent(std::move(videoFile), std::move(audioFile), std::move(outputMp4File));
+    static geode::Result<> mixVideoAudio(std::filesystem::path const& videoFile, std::filesystem::path const& audioFile, std::filesystem::path const& outputMp4File) {
+        impl::MixVideoAudioEvent mixEvent(videoFile, audioFile, outputMp4File);
         mixEvent.post();
         return mixEvent.getResult();
     }
@@ -240,8 +242,8 @@ public:
      * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    static geode::Result<> mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File) {
-        impl::MixVideoRawEvent mixEvent(std::move(videoFile), raw, std::move(outputMp4File));
+    static geode::Result<> mixVideoRaw(std::filesystem::path const& videoFile, const std::vector<float>& raw, std::filesystem::path const& outputMp4File) {
+        impl::MixVideoRawEvent mixEvent(videoFile, raw, outputMp4File);
         mixEvent.post();
         return mixEvent.getResult();
     }

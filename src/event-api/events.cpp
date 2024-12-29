@@ -36,7 +36,7 @@ $on_mod(Loaded) {
     });
 
     new EventListener<EventFilter<CodecRecorderEvent>>(+[](CodecRecorderEvent* e) {
-        e->setCodecs(ffmpeg::Recorder::getAvailableCodecs());
+        e->setCodecs(std::move(ffmpeg::Recorder::getAvailableCodecs()));
         return ListenerResult::Stop;
     });
 
