@@ -12,5 +12,10 @@
 - Fix codec fetching
 
 # 1.0.4
-
 - Mac release
+
+# 1.1.2
+- Fixed memory leak
+
+# 1.1.3
+- Events API

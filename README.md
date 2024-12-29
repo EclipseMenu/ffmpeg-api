@@ -84,17 +84,14 @@ void video() {
 #include <eclipse.ffmpeg-api/include/audio_mixer.hpp>
 
 void audioFile() {
-    ffmpeg::AudioMixer mixer;
-    mixer.mixVideoAudio("video.mp4", "audio.mp3", "output_mp3.mp4");
-    mixer.mixVideoAudio("video.mp4", "audio.wav", "output_wav.mp4");
+    ffmpeg::AudioMixer::mixVideoAudio("video.mp4", "audio.mp3", "output_mp3.mp4");
+    ffmpeg::AudioMixer::mixVideoAudio("video.mp4", "audio.wav", "output_wav.mp4");
 }
 
 void audioRaw() {
-    ffmpeg::AudioMixer mixer;
-
     //insert your raw data here
     std::vector<float> raw;
-    mixer.mixVideoRaw("video.mp4", raw, "output_raw.mp4");
+    ffmpeg::AudioMixer::mixVideoRaw("video.mp4", raw, "output_raw.mp4");
 }
 ```
 
@@ -107,17 +104,14 @@ void audioRaw() {
 #include <events.hpp>
 
 void audioFile() {
-    ffmpeg::events::AudioMixer mixer;
-    mixer.mixVideoAudio("video.mp4", "audio.mp3", "output_mp3.mp4");
-    mixer.mixVideoAudio("video.mp4", "audio.wav", "output_wav.mp4");
+    ffmpeg::events::AudioMixer::mixVideoAudio("video.mp4", "audio.mp3", "output_mp3.mp4");
+    ffmpeg::events::AudioMixer::mixVideoAudio("video.mp4", "audio.wav", "output_wav.mp4");
 }
 
 void audioRaw() {
-    ffmpeg::events::AudioMixer mixer;
-
     //insert your raw data here
     std::vector<float> raw;
-    mixer.mixVideoRaw("video.mp4", raw, "output_raw.mp4");
+    ffmpeg::events::AudioMixer::mixVideoRaw("video.mp4", raw, "output_raw.mp4");
 }
 ```
 
