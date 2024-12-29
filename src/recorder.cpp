@@ -124,7 +124,7 @@ geode::Result<> Recorder::init(const RenderSettings& settings) {
 
     int inputPixelFormat = (int)settings.m_pixelFormat;
 
-    if(!settings.m_colorspaceFilters.empty()) {
+    if(!settings.m_colorspaceFilters.empty() || settings.m_doVerticalFlip) {
         m_filterGraph = avfilter_graph_alloc();
         if (!m_filterGraph)
             return geode::Err("Could not allocate filter graph.");
@@ -132,6 +132,7 @@ geode::Result<> Recorder::init(const RenderSettings& settings) {
         const AVFilter* buffersrc = avfilter_get_by_name("buffer");
         const AVFilter* buffersink = avfilter_get_by_name("buffersink");
         const AVFilter* colorspace = avfilter_get_by_name("colorspace");
+        const AVFilter* vflip = avfilter_get_by_name("vflip");
 
         char args[512];
         snprintf(args, sizeof(args),
@@ -150,19 +151,38 @@ geode::Result<> Recorder::init(const RenderSettings& settings) {
             return geode::Err("Could not create output for filter graph: " + utils::getErrorString(ret));
         }
 
-        if(ret = avfilter_graph_create_filter(&m_colorspaceCtx, colorspace, "colorspace", settings.m_colorspaceFilters.c_str(), nullptr, m_filterGraph); ret < 0) {
-            avfilter_graph_free(&m_filterGraph);
-            return geode::Err("Could not create colorspace for filter graph: " + utils::getErrorString(ret));
+        if(!settings.m_colorspaceFilters.empty()) {
+            if(ret = avfilter_graph_create_filter(&m_colorspaceCtx, colorspace, "colorspace", settings.m_colorspaceFilters.c_str(), nullptr, m_filterGraph); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not create colorspace for filter graph: " + utils::getErrorString(ret));
+            }
+
+            if(ret = avfilter_link(m_buffersrcCtx, 0, m_colorspaceCtx, 0); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not link filters: " + utils::getErrorString(ret));
+            }
+
+            if(ret = avfilter_link(m_colorspaceCtx, 0, m_buffersinkCtx, 0); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not link filters: " + utils::getErrorString(ret));
+            }
         }
 
-        if(ret = avfilter_link(m_buffersrcCtx, 0, m_colorspaceCtx, 0); ret < 0) {
-            avfilter_graph_free(&m_filterGraph);
-            return geode::Err("Could not link filters: " + utils::getErrorString(ret));
-        }
+        if(settings.m_doVerticalFlip) {
+            if(ret = avfilter_graph_create_filter(&m_vflipCtx, vflip, "vflip", nullptr, nullptr, m_filterGraph); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not create vflip for filter graph: " + utils::getErrorString(ret));
+            }
 
-        if(ret = avfilter_link(m_colorspaceCtx, 0, m_buffersinkCtx, 0); ret < 0) {
-            avfilter_graph_free(&m_filterGraph);
-            return geode::Err("Could not link filters: " + utils::getErrorString(ret));
+            if(ret = avfilter_link(m_buffersrcCtx, 0, m_vflipCtx, 0); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not link filters: " + utils::getErrorString(ret));
+            }
+
+            if(ret = avfilter_link(m_vflipCtx, 0, m_buffersinkCtx, 0); ret < 0) {
+                avfilter_graph_free(&m_filterGraph);
+                return geode::Err("Could not link filters: " + utils::getErrorString(ret));
+            }
         }
 
         if (ret = avfilter_graph_config(m_filterGraph, nullptr); ret < 0) {

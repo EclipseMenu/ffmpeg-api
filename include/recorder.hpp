@@ -89,6 +89,7 @@ private:
     AVFilterContext* m_buffersrcCtx = nullptr;
     AVFilterContext* m_buffersinkCtx = nullptr;
     AVFilterContext* m_colorspaceCtx = nullptr;
+    AVFilterContext* m_vflipCtx = nullptr;
 
     size_t m_frameCount = 0;
     bool m_init = false;

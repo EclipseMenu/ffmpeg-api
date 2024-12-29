@@ -25,9 +25,9 @@ std::string getErrorString(int errorCode) {
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
 	av_strerror(errorCode, errbuf, AV_ERROR_MAX_STRING_SIZE);
     std::string errStr(errbuf);
-    errStr += "\nDetails:\n";
-    for(const std::string& log : s_ffmpegLogs)
-        errStr += log;
+    // errStr += "\nDetails:\n";
+    // for(const std::string& log : s_ffmpegLogs)
+    //     errStr += log;
 
     s_ffmpegLogs.clear();
     return errStr;
