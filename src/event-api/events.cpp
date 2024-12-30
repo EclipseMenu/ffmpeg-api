@@ -29,9 +29,10 @@ $on_mod(Loaded) {
         return ListenerResult::Stop;
     });
 
-    new EventListener<EventFilter<WriteFrameRecorderEvent>>(+[](WriteFrameRecorderEvent* e) {
-        ffmpeg::Recorder* ptr = (ffmpeg::Recorder*)e->getPtr();
-        e->setResult(ptr->writeFrame(e->getFrameData()));
+    new EventListener<EventFilter<GetWriteFrameFunctionEvent>>(+[](GetWriteFrameFunctionEvent* e) {
+        // this function is getting called a lot, so it would be better to cache the pointer
+        auto ptr = &ffmpeg::Recorder::writeFrame;
+        e->setFunction(reinterpret_cast<GetWriteFrameFunctionEvent::writeFrame_t>(ptr));
         return ListenerResult::Stop;
     });
 

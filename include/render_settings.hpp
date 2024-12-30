@@ -2,8 +2,9 @@
 
 #include <string>
 #include <filesystem>
+#include "export.hpp"
 
-namespace ffmpeg {
+BEGIN_FFMPEG_NAMESPACE_V
 
 enum class PixelFormat : int {
     NONE = -1,
@@ -321,4 +322,4 @@ struct RenderSettings {
     std::filesystem::path m_outputFile;
 };
 
-}
+END_FFMPEG_NAMESPACE_V

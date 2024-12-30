@@ -38,6 +38,7 @@ public:
      * @return true if initialization is successful, false otherwise.
      */
     geode::Result<> init(const RenderSettings& settings);
+
     /**
      * @brief Stops the recording process and finalizes the output file.
      *
@@ -75,24 +76,29 @@ private:
     geode::Result<> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
 
 private:
-    AVFormatContext* m_formatContext = nullptr;
-    const AVCodec* m_codec = nullptr;
-    AVStream* m_videoStream = nullptr;
-    AVCodecContext* m_codecContext = nullptr;
-    AVBufferRef* m_hwDevice = nullptr;
-    AVFrame* m_frame = nullptr;
-    AVFrame* m_convertedFrame = nullptr;
-    AVFrame* m_filteredFrame = nullptr;
-    AVPacket* m_packet = nullptr;
-    SwsContext* m_swsCtx = nullptr;
-    AVFilterGraph* m_filterGraph = nullptr;
-    AVFilterContext* m_buffersrcCtx = nullptr;
-    AVFilterContext* m_buffersinkCtx = nullptr;
-    AVFilterContext* m_colorspaceCtx = nullptr;
-    AVFilterContext* m_vflipCtx = nullptr;
+    class Impl {
+    public:
+        AVFormatContext* m_formatContext = nullptr;
+        const AVCodec* m_codec = nullptr;
+        AVStream* m_videoStream = nullptr;
+        AVCodecContext* m_codecContext = nullptr;
+        AVBufferRef* m_hwDevice = nullptr;
+        AVFrame* m_frame = nullptr;
+        AVFrame* m_convertedFrame = nullptr;
+        AVFrame* m_filteredFrame = nullptr;
+        AVPacket* m_packet = nullptr;
+        SwsContext* m_swsCtx = nullptr;
+        AVFilterGraph* m_filterGraph = nullptr;
+        AVFilterContext* m_buffersrcCtx = nullptr;
+        AVFilterContext* m_buffersinkCtx = nullptr;
+        AVFilterContext* m_colorspaceCtx = nullptr;
+        AVFilterContext* m_vflipCtx = nullptr;
 
-    size_t m_frameCount = 0;
-    bool m_init = false;
+        size_t m_frameCount = 0;
+        bool m_init = false;
+    };
+
+    std::unique_ptr<Impl> m_impl = nullptr;
 };
 
 END_FFMPEG_NAMESPACE_V

@@ -19,11 +19,38 @@ namespace ffmpeg {
         }
     };
 
+    typedef struct RenderSettings {
+        HardwareAccelerationType m_hardwareAccelerationType;
+        PixelFormat m_pixelFormat;
+        std::string m_codec;
+        std::string m_colorspaceFilters;
+        int64_t m_bitrate;
+        uint32_t m_width;
+        uint32_t m_height;
+        uint16_t m_fps;
+        std::filesystem::path m_outputFile;
+
+        v2::RenderSettings toV2() const {
+            return v2::RenderSettings {
+                .m_hardwareAccelerationType = m_hardwareAccelerationType,
+                .m_pixelFormat = m_pixelFormat,
+                .m_codec = m_codec,
+                .m_colorspaceFilters = m_colorspaceFilters,
+                .m_doVerticalFlip = false,
+                .m_bitrate = m_bitrate,
+                .m_width = m_width,
+                .m_height = m_height,
+                .m_fps = m_fps,
+                .m_outputFile = m_outputFile
+            };
+        }
+    } RenderSettingsV1;
+
     class FFMPEG_API_DLL Recorder {
 #define self reinterpret_cast<FFMPEG_API_VERSION_NS::Recorder*>(this)
     public:
-        bool init(const RenderSettings& settings) {
-            auto res = self->init(settings);
+        bool init(const RenderSettingsV1& settings) {
+            auto res = self->init(settings.toV2());
             return res.isOk();
         }
 
