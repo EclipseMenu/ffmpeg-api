@@ -17,5 +17,11 @@
 # 1.1.2
 - Fixed memory leak
 
-# 1.1.3
+# 1.1.3 (reverted)
 - Events API
+
+# 1.2.0
+- Fix Events API
+- V-flip support
+- More error handling
+- Performance improvements
