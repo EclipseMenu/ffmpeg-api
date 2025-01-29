@@ -45,6 +45,7 @@ private:
         AVFilterContext* m_vflipCtx = nullptr;
 
         size_t m_frameCount = 0;
+        size_t m_expectedSize = 0;
         bool m_init = false;
 
         geode::Result<> init(const RenderSettings& settings);

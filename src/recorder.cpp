@@ -103,10 +103,11 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
         return geode::Err("Could not write header: " + utils::getErrorString(ret));
 
     m_frame = av_frame_alloc();
-    m_frame->format = m_codecContext->pix_fmt;
+    m_frame->format = (AVPixelFormat)settings.m_pixelFormat;
     m_frame->width = m_codecContext->width;
     m_frame->height = m_codecContext->height;
 
+    //m_frame should always have the pixel format of the settings, if the codec does not support it, it will be converted in writeFrame
     if (ret = av_image_alloc(m_frame->data, m_frame->linesize, m_codecContext->width, m_codecContext->height, (AVPixelFormat)settings.m_pixelFormat, 32); ret < 0)
         return geode::Err("Could not allocate raw picture buffer: " + utils::getErrorString(ret));
 
@@ -124,8 +125,6 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
     m_packet->data = nullptr;
     m_packet->size = 0;
 
-    int inputPixelFormat = (int)settings.m_pixelFormat;
-
     if(!settings.m_colorspaceFilters.empty() || settings.m_doVerticalFlip) {
         m_filterGraph = avfilter_graph_alloc();
         if (!m_filterGraph)
@@ -137,7 +136,7 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
         const AVFilter* vflip = avfilter_get_by_name("vflip");
 
         char args[512];
-        snprintf(args, sizeof(args),
+            snprintf(args, sizeof(args),
                 "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                 m_codecContext->width, m_codecContext->height, m_codecContext->pix_fmt,
                 m_codecContext->time_base.num, m_codecContext->time_base.den,
@@ -191,17 +190,18 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
             avfilter_graph_free(&m_filterGraph);
             return geode::Err("Could not configure filter graph: " + utils::getErrorString(ret));
         }
-
-        inputPixelFormat = av_buffersink_get_format(m_buffersinkCtx);
     }
 
-    m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)inputPixelFormat, m_codecContext->width,
-        m_codecContext->height, m_codecContext->pix_fmt, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+    if((AVPixelFormat)settings.m_pixelFormat != m_codecContext->pix_fmt) {
+        m_swsCtx = sws_getContext(m_codecContext->width, m_codecContext->height, (AVPixelFormat)settings.m_pixelFormat, m_codecContext->width,
+            m_codecContext->height, m_codecContext->pix_fmt, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
 
-    if (!m_swsCtx)
-        return geode::Err("Could not create sws context.");
+        if (!m_swsCtx)
+            return geode::Err("Could not create sws context.");
+    }
 
     m_frameCount = 0;
+    m_expectedSize = av_image_get_buffer_size((AVPixelFormat)m_frame->format, m_frame->width, m_frame->height, 1);
 
     m_init = true;
 
@@ -212,32 +212,45 @@ geode::Result<> Recorder::Impl::writeFrame(const std::vector<uint8_t>& frameData
     if (!m_init || !m_frame)
         return geode::Err("Recorder is not initialized.");
 
-    if(frameData.size() != m_frame->linesize[0] * m_frame->height)
+    if(frameData.size() != m_expectedSize)
         return geode::Err("Frame data size does not match expected dimensions.");
 
+    int ret = av_image_fill_arrays(
+        m_frame->data,
+        m_frame->linesize,
+        frameData.data(),
+        (AVPixelFormat)m_frame->format,
+        m_frame->width,
+        m_frame->height,
+        1
+    );
+
+    if (ret < 0)
+        return geode::Err("Failed to fill image arrays: " + utils::getErrorString(ret));
+
+    if(m_swsCtx) {
+        sws_scale(
+            m_swsCtx, m_frame->data, m_frame->linesize, 0, m_frame->height,
+            m_convertedFrame->data, m_convertedFrame->linesize);
+    }
+    else {
+        av_frame_copy(m_convertedFrame, m_frame);
+        av_frame_copy_props(m_convertedFrame, m_frame);
+    }
+
     if(m_buffersrcCtx) {
-        std::memcpy(m_frame->data[0], frameData.data(), frameData.size());
-        geode::Result<> res = filterFrame(m_frame, m_filteredFrame);
+        geode::Result<> res = filterFrame(m_convertedFrame, m_filteredFrame);
 
         if(res.isErr())
             return res;
 
-        sws_scale(
-            m_swsCtx, m_filteredFrame->data, m_filteredFrame->linesize, 0, m_filteredFrame->height,
-            m_convertedFrame->data, m_convertedFrame->linesize);
-    }
-    else {
-        const uint8_t* srcData[1] = { frameData.data() };
-        int srcLinesize[1] = { m_frame->linesize[0] };
-
-        sws_scale(
-            m_swsCtx, srcData, m_frame->linesize, 0, m_frame->height,
-            m_convertedFrame->data, m_convertedFrame->linesize);
+        av_frame_copy(m_convertedFrame, m_filteredFrame);
+        av_frame_copy_props(m_convertedFrame, m_filteredFrame);
     }
 
     m_convertedFrame->pts = m_frameCount++;
 
-    int ret = avcodec_send_frame(m_codecContext, m_convertedFrame);
+    ret = avcodec_send_frame(m_codecContext, m_convertedFrame);
     if (ret < 0)
         return geode::Err("Error while sending frame: " + utils::getErrorString(ret));
 
@@ -293,7 +306,8 @@ void Recorder::Impl::stop() {
 
     avcodec_free_context(&m_codecContext);
     av_frame_free(&m_frame);
-    av_frame_free(&m_convertedFrame);
+    if(m_convertedFrame) //m_convertedFrame could be pointing to m_frame
+        av_frame_free(&m_convertedFrame);
     if (!(m_formatContext->oformat->flags & AVFMT_NOFILE)) {
         avio_close(m_formatContext->pb);
     }

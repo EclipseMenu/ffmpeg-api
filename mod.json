@@ -1,5 +1,5 @@
 {
-    "geode": "4.1.1",
+    "geode": "4.2.0",
     "gd": {
         "win": "*",
         "android": "*",
@@ -14,7 +14,7 @@
     "id": "eclipse.ffmpeg-api",
     "name": "FFmpeg API",
     "version": "v1.2.0",
-    "developers": ["Eclipse Team", "maxnu"],
+    "developers": ["Eclipse Team", "maxnu", "Prevter"],
     "description": "Interaction with FFmpeg made easy",
     "tags": ["utility", "offline", "developer"],
     "links": {

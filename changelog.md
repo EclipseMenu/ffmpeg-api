@@ -25,3 +25,4 @@
 - V-flip support
 - More error handling
 - Performance improvements
+- Bug fixes

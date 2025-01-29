@@ -193,6 +193,9 @@ BEGIN_FFMPEG_NAMESPACE_V
             }
         }
 
+        if(videoStreamIndex == -1)
+            return geode::Err("Could not find a valid video stream.");
+
         AVCodecParameters* inputVideoParams = videoFormatContext->streams[videoStreamIndex]->codecpar;
         avcodec_parameters_copy(outputVideoStream->codecpar, inputVideoParams);
         outputVideoStream->codecpar->codec_tag = 0;
