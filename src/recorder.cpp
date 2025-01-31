@@ -289,40 +289,44 @@ geode::Result<> Recorder::Impl::filterFrame(AVFrame* inputFrame, AVFrame* output
 }
 
 void Recorder::Impl::stop() {
-    if(!m_init)
-        return;
-
-    m_init = false;
-
-    avcodec_send_frame(m_codecContext, nullptr);
-    while (avcodec_receive_packet(m_codecContext, m_packet) == 0) {
-        av_packet_rescale_ts(m_packet, m_codecContext->time_base, m_videoStream->time_base);
-        m_packet->stream_index = m_videoStream->index;
-        av_interleaved_write_frame(m_formatContext, m_packet);
-        av_packet_unref(m_packet);
+    if(m_codecContext && m_videoStream && m_formatContext && m_packet) {
+        avcodec_send_frame(m_codecContext, nullptr);
+        while (avcodec_receive_packet(m_codecContext, m_packet) == 0) {
+            av_packet_rescale_ts(m_packet, m_codecContext->time_base, m_videoStream->time_base);
+            m_packet->stream_index = m_videoStream->index;
+            av_interleaved_write_frame(m_formatContext, m_packet);
+            av_packet_unref(m_packet);
+        }
     }
 
-    av_write_trailer(m_formatContext);
+    if(m_formatContext)
+        av_write_trailer(m_formatContext);
 
-    avcodec_free_context(&m_codecContext);
-    av_frame_free(&m_frame);
-    if(m_convertedFrame) //m_convertedFrame could be pointing to m_frame
+    if(m_codecContext)
+        avcodec_free_context(&m_codecContext);
+
+    if(m_frame)
+        av_frame_free(&m_frame);
+    if(m_convertedFrame)
         av_frame_free(&m_convertedFrame);
-    if (!(m_formatContext->oformat->flags & AVFMT_NOFILE)) {
-        avio_close(m_formatContext->pb);
+
+    if(m_formatContext) {
+        if (!(m_formatContext->oformat->flags & AVFMT_NOFILE)) {
+            avio_close(m_formatContext->pb);
+        }
+        avformat_free_context(m_formatContext);
     }
-    avformat_free_context(m_formatContext);
 
     if(m_filterGraph) {
         avfilter_graph_free(&m_filterGraph);
         av_frame_free(&m_filteredFrame);
     }
 
-    if (m_hwDevice) {
+    if (m_hwDevice)
         av_buffer_unref(&m_hwDevice);
-    }
 
-    av_packet_free(&m_packet);
+    if(m_packet)
+        av_packet_free(&m_packet);
 }
 
 END_FFMPEG_NAMESPACE_V

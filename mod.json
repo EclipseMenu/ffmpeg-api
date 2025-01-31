@@ -13,7 +13,7 @@
     },
     "id": "eclipse.ffmpeg-api",
     "name": "FFmpeg API",
-    "version": "v1.2.0",
+    "version": "v1.2.1",
     "developers": ["Eclipse Team", "maxnu", "Prevter"],
     "description": "Interaction with FFmpeg made easy",
     "tags": ["utility", "offline", "developer"],
