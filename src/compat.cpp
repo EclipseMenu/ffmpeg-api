@@ -4,20 +4,24 @@
 #include "recorder.hpp"
 
 namespace ffmpeg {
-    class FFMPEG_API_DLL AudioMixer {
+    typedef class FFMPEG_API_DLL AudioMixer {
     public:
-        void mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
-            (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoAudio(std::move(videoFile), std::move(audioFile), std::move(outputMp4File));
-        }
+        void mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File);
+        void mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate);
+        void mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File);
+    } AudioMixerV1;
 
-        void mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate) {
-            (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoRaw(videoFile, raw, outputMp4File);
-        }
+    void AudioMixerV1::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
+        (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoAudio(std::move(videoFile), std::move(audioFile), std::move(outputMp4File));
+    }
 
-        void mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
-            (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoRaw(videoFile, raw, outputMp4File);
-        }
-    };
+    void AudioMixerV1::mixVideoRaw(std::filesystem::path videoFile, const std::vector<float>& raw, std::filesystem::path outputMp4File, uint32_t sampleRate) {
+        (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoRaw(videoFile, raw, outputMp4File);
+    }
+
+    void AudioMixerV1::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+        (void) FFMPEG_API_VERSION_NS::AudioMixer::mixVideoRaw(videoFile, raw, outputMp4File);
+    }
 
     typedef struct RenderSettings {
         HardwareAccelerationType m_hardwareAccelerationType;
@@ -46,27 +50,32 @@ namespace ffmpeg {
         }
     } RenderSettingsV1;
 
-    class FFMPEG_API_DLL Recorder {
-#define self reinterpret_cast<FFMPEG_API_VERSION_NS::Recorder*>(this)
+    typedef class FFMPEG_API_DLL Recorder {
     public:
-        bool init(const RenderSettingsV1& settings) {
-            auto res = self->init(settings.toV2());
-            return res.isOk();
-        }
+        bool init(const RenderSettingsV1& settings);
+        void stop();
+        bool writeFrame(const std::vector<uint8_t>& frameData);
+        std::vector<std::string> getAvailableCodecs();
+    } RecorderV1;
 
-        void stop() {
-            self->stop();
-        }
+#define self reinterpret_cast<FFMPEG_API_VERSION_NS::Recorder*>(this)
+    bool RecorderV1::init(const RenderSettingsV1& settings) {
+        auto res = self->init(settings.toV2());
+        return res.isOk();
+    }
 
-        bool writeFrame(const std::vector<uint8_t>& frameData) {
-            auto res = self->writeFrame(frameData);
-            return res.isOk();
-        }
+    void RecorderV1::stop() {
+        self->stop();
+    }
 
-        std::vector<std::string> getAvailableCodecs() {
-            return FFMPEG_API_VERSION_NS::Recorder::getAvailableCodecs();
-        }
+    bool RecorderV1::writeFrame(const std::vector<uint8_t>& frameData) {
+        auto res = self->writeFrame(frameData);
+        return res.isOk();
+    }
+
+    std::vector<std::string> RecorderV1::getAvailableCodecs() {
+        return FFMPEG_API_VERSION_NS::Recorder::getAvailableCodecs();
+    }
 #undef self
-    };
 
 }
