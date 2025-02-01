@@ -26,3 +26,9 @@
 - More error handling
 - Performance improvements
 - Bug fixes
+
+# 1.2.1
+- Proper cleanup on recorder initialization failure
+
+# 1.2.2
+- Fix Android/macOS ABI
