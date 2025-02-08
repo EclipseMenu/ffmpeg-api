@@ -38,11 +38,11 @@ geode::Result<std::vector<float>> readAudioFile(const char *filename, int target
 	if (!codecContext)
 		return geode::Err("Failed to allocate codec context");
 
-	if (ret = avcodec_parameters_to_context(codecContext, codecParams); ret < 0)
-		return geode::Err("Failed to copy codec parameters to codec context: " + ffmpeg::utils::getErrorString(ret));
-
 	if (ret = avcodec_open2(codecContext, codec, nullptr); ret < 0)
 		return geode::Err("Failed to open codec: " + ffmpeg::utils::getErrorString(ret));
+
+    if (ret = avcodec_parameters_to_context(codecContext, codecParams); ret < 0)
+		return geode::Err("Failed to copy codec parameters to codec context: " + ffmpeg::utils::getErrorString(ret));
 
     *outCodecParams = *codecParams;
 
@@ -220,10 +220,9 @@ BEGIN_FFMPEG_NAMESPACE_V
         outputAudioStream->codecpar->codec_tag = 0;
         outputAudioStream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
         outputAudioStream->codecpar->sample_rate = sampleRate;
-        outputAudioStream->codecpar->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
+        av_channel_layout_default(&outputAudioStream->codecpar->ch_layout, channels);
         outputAudioStream->codecpar->codec_id = AV_CODEC_ID_AAC;
         outputAudioStream->codecpar->bit_rate = 128000;
-        outputAudioStream->codecpar->bits_per_coded_sample = 16;
         outputAudioStream->codecpar->format = AVSampleFormat::AV_SAMPLE_FMT_FLTP;
         outputAudioStream->codecpar->frame_size = frameSize;
 
@@ -240,7 +239,7 @@ BEGIN_FFMPEG_NAMESPACE_V
 
         audio_codec_context_encoder->sample_rate = sampleRate;
         audio_codec_context_encoder->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
-        audio_codec_context_encoder->sample_fmt = AV_SAMPLE_FMT_FLTP;
+        audio_codec_context_encoder->sample_fmt = audioCodec->sample_fmts ? audioCodec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
         audio_codec_context_encoder->time_base = AVRational{1, static_cast<int>(sampleRate)};
 
         ret = avcodec_open2(audio_codec_context_encoder, audioCodec, nullptr);
@@ -303,14 +302,13 @@ BEGIN_FFMPEG_NAMESPACE_V
                 return geode::Err("Could not send audio frame to encoder: " + utils::getErrorString(ret));
 
             AVPacket* audioPacket = av_packet_alloc();
-            audioPacket->data = nullptr;
-            audioPacket->size = 0;
+            if (!audioPacket) return geode::Err("Failed to allocate audio packet.");
 
             while (true) {
                 int ret = avcodec_receive_packet(audio_codec_context_encoder, audioPacket);
                 if (ret == 0) {
                     av_packet_rescale_ts(audioPacket, audio_codec_context_encoder->time_base, outputAudioStream->time_base);
-                    audioPacket->stream_index = 1;
+                    audioPacket->stream_index = outputAudioStream->index;
                     av_interleaved_write_frame(outputFormatContext, audioPacket);
                     av_packet_unref(audioPacket);
                 } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
