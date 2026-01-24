@@ -23,6 +23,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # LANGKAH KUNCI: Paksa install binari loader yang hilang
+      - name: Setup Geode CLI
+        uses: geode-sdk/setup-geode@v2
+        with:
+          version: latest
+
+      - name: Install Geode Binaries
+        run: geode sdk install-binaries --platform android
+
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
