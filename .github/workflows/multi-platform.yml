@@ -1,49 +1,31 @@
-name: Build Geode Mod
+#include "audio_mixer.hpp"
+#include "utils.hpp"
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <filesystem>
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - "**"
+BEGIN_FFMPEG_NAMESPACE_V
 
-jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - name: Android64
-          os: ubuntu-latest
-          target: Android64
+    // Hanya fungsi ini yang akan dipanggil oleh XDBot
+    geode::Result<> AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
+        
+        // Membangun command untuk GDMPEG di Termux
+        std::string cmd = "su -c '/data/data/com.termux/files/home/GDMPEG/dist/bin/gdmpeg_test \"" + 
+                          videoFile.string() + "\" \"" + 
+                          audioFile.string() + "\" \"" + 
+                          outputMp4File.string() + "\"'";
 
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
+        // Eksekusi sistem
+        int result = std::system(cmd.c_str());
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        if (result == 0) return geode::Ok();
+        return geode::Err("GDMPEG Gagal: Cek izin root atau path biner.");
+    }
 
-      - name: Build the mod
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          # KUNCI PERBAIKAN: Kita arahkan ke versi bindings yang spesifik
-          bindings: geode-sdk/bindings
-          bindings-ref: v2.2.0
-          combine: true
-          target: ${{ matrix.config.target }}
-          android-min-sdk: 23
+    // Fungsi ini wajib ada agar tidak error saat linking, tapi kita kosongkan
+    geode::Result<> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+        return geode::Ok();
+    }
 
-  package:
-    name: Package builds
-    runs-on: ubuntu-latest
-    needs: ['build']
-
-    steps:
-      - uses: geode-sdk/build-geode-mod/combine@main
-        id: build
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Build Output
-          path: ${{ steps.build.outputs.build-output }}
-          
+END_FFMPEG_NAMESPACE_V
