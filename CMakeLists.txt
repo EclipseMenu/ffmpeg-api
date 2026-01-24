@@ -17,10 +17,10 @@ add_geode_mod(
     GD android
 )
 
+# Cuma pake dua file ini aja biar nggak ribet cari dependensi lain
 target_sources(ffmpeg-api PUBLIC 
     src/audio_mixer.cpp
     src/utils.cpp
 )
 
-# Kita hapus semua link ke library ffmpeg eksternal
 setup_geode_mod(ffmpeg-api)
