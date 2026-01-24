@@ -1,11 +1,8 @@
-#pragma once
-
+#include "utils.hpp"
 #include <string>
 
 namespace ffmpeg::utils {
-
-void customLogCallback(void* ptr, int level, const char* fmt, char* vargs);
-
-std::string getErrorString(int errorCode);
-
+    std::string getErrorString(int code) {
+        return "Error code: " + std::to_string(code);
+    }
 }
