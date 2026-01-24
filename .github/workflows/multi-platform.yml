@@ -1,4 +1,4 @@
-name: Build Geode Mod
+Name: Build Geode Mod
 
 on:
   workflow_dispatch:
@@ -12,17 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - name: Windows
-          os: windows-latest
-
-        - name: macOS
-          os: macos-latest
-          
-        - name: Android32
-          os: ubuntu-latest
-          target: Android32
-          min-sdk: 24
-
         - name: Android64
           os: ubuntu-latest
           target: Android64
@@ -34,17 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Own The Libs (Checkout)
-        uses: actions/checkout@v4
-        with:
-          repository: EclipseMenu/ffmpeg-libs
-          ref: ${{ matrix.config.name }}
-          token: ${{ secrets.FFMPEG_LIBS_TOKEN }}
-          path: ffmpeg-libs
-
-      - name: Own The Libs (Extract)
-        run: 7z x ffmpeg-libs/lib/lib.7z -olib
-
+      # Kita hapus bagian "Own The Libs" yang meminta token rahasia
+      # Karena kode C++ kita sekarang tidak butuh library FFmpeg eksternal lagi
+      
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
@@ -52,7 +33,7 @@ jobs:
           bindings-ref: main
           combine: true
           target: ${{ matrix.config.target }}
-          android-min-sdk: ${{ matrix.config.min-sdk || 23 }}
+          android-min-sdk: 23
 
   package:
     name: Package builds
