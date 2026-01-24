@@ -1,4 +1,4 @@
-Name: Build Geode Mod
+name: Build Geode Mod
 
 on:
   workflow_dispatch:
@@ -23,9 +23,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Kita hapus bagian "Own The Libs" yang meminta token rahasia
-      # Karena kode C++ kita sekarang tidak butuh library FFmpeg eksternal lagi
-      
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
