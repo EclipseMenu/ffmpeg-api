@@ -21,5 +21,7 @@ $execute {
         vtable.getAvailableCodecs = &ffmpeg::Recorder::getAvailableCodecs;
         vtable.mixVideoAudio = &ffmpeg::AudioMixer::mixVideoAudio;
         vtable.mixVideoRaw = &ffmpeg::AudioMixer::mixVideoRaw;
+
+        return ListenerResult::Stop;
     }).leak();
 }
