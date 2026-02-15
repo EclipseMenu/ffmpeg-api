@@ -96,7 +96,7 @@ geode::Result<std::vector<float>> readAudioFile(const char *filename, int target
 	return geode::Ok(audioFrames);
 }
 
-geode::Result<std::vector<float>> resampleAudio(const std::vector<float>& inputAudio, int inputSampleRate, int targetSampleRate) {
+geode::Result<std::vector<float>> resampleAudio(std::span<float> inputAudio, int inputSampleRate, int targetSampleRate) {
     SwrContext *swrCtx = nullptr;
 	int ret;
     AVChannelLayout ch_layout;
@@ -142,7 +142,7 @@ geode::Result<std::vector<float>> resampleAudio(const std::vector<float>& inputA
 }
 
 BEGIN_FFMPEG_NAMESPACE_V
-    geode::Result<> AudioMixer::mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File) {
+    geode::Result<> AudioMixer::mixVideoAudio(const std::filesystem::path& videoFile, const std::filesystem::path& audioFile, const std::filesystem::path& outputMp4File) {
         constexpr int frameSize = 1024;
 
         AVFormatContext* wavFormatContext = nullptr;
@@ -164,7 +164,7 @@ BEGIN_FFMPEG_NAMESPACE_V
         return res;
     }
 
-    geode::Result<> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File) {
+    geode::Result<> AudioMixer::mixVideoRaw(const std::filesystem::path& videoFile, std::span<float> raw, const std::filesystem::path &outputMp4File) {
         constexpr int frameSize = 1024;
     	constexpr uint32_t sampleRate = 44100;
 

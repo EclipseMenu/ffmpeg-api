@@ -50,7 +50,7 @@ private:
 
         geode::Result<> init(const RenderSettings& settings);
         void stop();
-        geode::Result<> writeFrame(const std::vector<uint8_t>& frameData);
+        geode::Result<> writeFrame(std::span<uint8_t const> frameData);
         geode::Result<> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
     };
 
@@ -94,7 +94,7 @@ public:
      * 
      * @warning Ensure that the frameData size matches the expected dimensions of the frame.
      */
-    geode::Result<> writeFrame(const std::vector<uint8_t>& frameData) const {
+    geode::Result<> writeFrame(std::span<uint8_t const> frameData) const {
         return m_impl->writeFrame(frameData);
     }
 

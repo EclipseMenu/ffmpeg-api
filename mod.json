@@ -1,5 +1,5 @@
 {
-    "geode": "4.2.0",
+    "geode": "5.0.0-beta.1",
     "gd": {
         "win": "*",
         "android": "*",
@@ -16,7 +16,7 @@
     "version": "v1.2.2",
     "developers": ["Eclipse Team", "maxnu", "Prevter"],
     "description": "Interaction with FFmpeg made easy",
-    "tags": ["utility", "offline", "developer"],
+    "tags": ["utility", "offline", "developer", "api"],
     "links": {
         "source": "https://github.com/EclipseMenu/ffmpeg-api",
         "community": "https://discord.gg/NnpwFRDMND"

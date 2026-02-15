@@ -208,7 +208,7 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
     return geode::Ok();
 }
 
-geode::Result<> Recorder::Impl::writeFrame(const std::vector<uint8_t>& frameData) {
+geode::Result<> Recorder::Impl::writeFrame(std::span<uint8_t const> frameData) {
     if (!m_init || !m_frame)
         return geode::Err("Recorder is not initialized.");
 

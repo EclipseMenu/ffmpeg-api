@@ -27,7 +27,7 @@ public:
      * @warning The audio file is expected to contain stereo (dual-channel) audio. Using other formats might lead to unexpected results.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    static geode::Result<> mixVideoAudio(std::filesystem::path videoFile, std::filesystem::path audioFile, std::filesystem::path outputMp4File);
+    static geode::Result<> mixVideoAudio(const std::filesystem::path& videoFile, const std::filesystem::path& audioFile, const std::filesystem::path& outputMp4File);
 
     /**
      * @brief Mixes a video file and raw audio data into a single MP4 output.
@@ -42,7 +42,7 @@ public:
      * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    static geode::Result<> mixVideoRaw(const std::filesystem::path& videoFile, const std::vector<float>& raw, const std::filesystem::path &outputMp4File);
+    static geode::Result<> mixVideoRaw(const std::filesystem::path& videoFile, std::span<float> raw, const std::filesystem::path &outputMp4File);
 };
 
 END_FFMPEG_NAMESPACE_V
