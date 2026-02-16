@@ -67,6 +67,9 @@ elseif (ANDROID)
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libvpx.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libx264.a
             ${CMAKE_SOURCE_DIR}/lib/arm64-v8a/libx265.a
+            android
+            mediandk
+            log
         ) # android
     elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
         add_definitions(-D__USE_FILE_OFFSET64)
@@ -83,6 +86,9 @@ elseif (ANDROID)
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libvpx.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libx264.a
             ${CMAKE_SOURCE_DIR}/lib/armeabi-v7a/libx265.a
+            android
+            mediandk
+            log
         ) # android
     endif()
 else ()
