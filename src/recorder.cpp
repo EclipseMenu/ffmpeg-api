@@ -73,6 +73,12 @@ geode::Result<> Recorder::Impl::init(const RenderSettings& settings) {
 
     if (const AVPixelFormat *pix_fmt = m_codec->pix_fmts) {
         while (*pix_fmt != AV_PIX_FMT_NONE) {
+            if(*pix_fmt == AV_PIX_FMT_MEDIACODEC) {
+                // secretly force pix fmt to nv12. seems to work contrary to yuv420p.
+                // with AV_PIX_FMT_MEDIACODEC mediacodec would go into surface mode and expect a surface
+                m_codecContext->pix_fmt = AV_PIX_FMT_NV12; 
+                break;
+            }
             if(*pix_fmt == static_cast<AVPixelFormat>(settings.m_pixelFormat))
                 m_codecContext->pix_fmt = *pix_fmt;
             ++pix_fmt;
