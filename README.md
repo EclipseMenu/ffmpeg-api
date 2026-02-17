@@ -121,7 +121,7 @@ void audioRaw() {
 ### Windows
 To get the needed libraries on Windows, you can use vcpkg:
 ```sh
-vcpkg install ffmpeg[core,avcodec,avformat,avfilter,swscale,swresample,amf,x264,x265,nvcodec,openh264,aom,vpx]:x64-windows-static --recurse
+vcpkg install ffmpeg[core,avcodec,avformat,avfilter,swscale,swresample,amf,x264,x265,nvcodec,openh264,aom,vpx]:x64-windows-static-md --recurse
 ```
 the other libraries are part of the Windows SDK
 
