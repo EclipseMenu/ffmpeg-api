@@ -173,7 +173,7 @@ public:
      * @warning The raw audio data is expected to be stereo (dual-channel). Using mono or multi-channel audio might lead to issues.
      * @warning The video file is expected to contain a single video stream. Only the first video stream will be copied.
      */
-    static geode::Result<> mixVideoRaw(std::filesystem::path const& videoFile, std::vector<float> raw, std::filesystem::path const& outputMp4File) {
+    static geode::Result<> mixVideoRaw(std::filesystem::path const& videoFile, std::span<float> raw, std::filesystem::path const& outputMp4File) {
         auto& vtable = impl::getVTable();
         if (!vtable.mixVideoRaw) {
             return geode::Err("FFmpeg API is not available.");
