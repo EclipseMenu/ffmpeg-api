@@ -225,6 +225,7 @@ BEGIN_FFMPEG_NAMESPACE_V
         outputAudioStream->codecpar->bit_rate = 128000;
         outputAudioStream->codecpar->format = AVSampleFormat::AV_SAMPLE_FMT_FLTP;
         outputAudioStream->codecpar->frame_size = frameSize;
+        outputAudioStream->time_base = AVRational{1, static_cast<int>(sampleRate)};
 
         outputFormatContext->audio_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
         outputFormatContext->audio_codec_id = AV_CODEC_ID_AAC;
@@ -242,9 +243,13 @@ BEGIN_FFMPEG_NAMESPACE_V
         audio_codec_context_encoder->sample_fmt = audioCodec->sample_fmts ? audioCodec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
         audio_codec_context_encoder->time_base = AVRational{1, static_cast<int>(sampleRate)};
 
+        if (outputFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
+            audio_codec_context_encoder->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
         ret = avcodec_open2(audio_codec_context_encoder, audioCodec, nullptr);
         if (ret < 0)
             return geode::Err("Could not open encoder: " + utils::getErrorString(ret));
+        avcodec_parameters_from_context(outputAudioStream->codecpar, audio_codec_context_encoder);
 
         if (!(outputFormatContext->oformat->flags & AVFMT_NOFILE)) {
             if (ret = avio_open(&outputFormatContext->pb, outputMp4File.string().c_str(), AVIO_FLAG_WRITE); ret < 0) {
@@ -265,7 +270,7 @@ BEGIN_FFMPEG_NAMESPACE_V
         while (true) {
             if (av_read_frame(videoFormatContext, &packet) >= 0) {
                 av_packet_rescale_ts(&packet, videoFormatContext->streams[videoStreamIndex]->time_base, outputVideoStream->time_base);
-                packet.stream_index = videoStreamIndex;
+                packet.stream_index = outputVideoStream->index;
                 av_interleaved_write_frame(outputFormatContext, &packet);
                 av_packet_unref(&packet);
             } else {
@@ -281,6 +286,9 @@ BEGIN_FFMPEG_NAMESPACE_V
 
         audioFrame->format = AV_SAMPLE_FMT_FLTP;
         audioFrame->ch_layout = AV_CHANNEL_LAYOUT_STEREO;
+
+        AVPacket* audioPacket = av_packet_alloc();
+        if (!audioPacket) return geode::Err("Failed to allocate audio packet.");
 
         for (size_t i = 0; i < resampled.size(); i += frameSize * channels) {
             int samplesToEncode = std::min(frameSize, static_cast<int>((resampled.size() - i) / channels));
@@ -301,9 +309,6 @@ BEGIN_FFMPEG_NAMESPACE_V
             if (ret = avcodec_send_frame(audio_codec_context_encoder, audioFrame); ret < 0)
                 return geode::Err("Could not send audio frame to encoder: " + utils::getErrorString(ret));
 
-            AVPacket* audioPacket = av_packet_alloc();
-            if (!audioPacket) return geode::Err("Failed to allocate audio packet.");
-
             while (true) {
                 int ret = avcodec_receive_packet(audio_codec_context_encoder, audioPacket);
                 if (ret == 0) {
@@ -318,6 +323,26 @@ BEGIN_FFMPEG_NAMESPACE_V
             }
         }
 
+        avcodec_send_frame(audio_codec_context_encoder, nullptr);
+
+        while (true) {
+            int recv_ret = avcodec_receive_packet(audio_codec_context_encoder, audioPacket);
+            if (recv_ret == 0) {
+                av_packet_rescale_ts(audioPacket,
+                    audio_codec_context_encoder->time_base,
+                    outputAudioStream->time_base);
+
+                audioPacket->stream_index = outputAudioStream->index;
+                av_interleaved_write_frame(outputFormatContext, audioPacket);
+                av_packet_unref(audioPacket);
+            } else if (recv_ret == AVERROR_EOF || recv_ret == AVERROR(EAGAIN)) {
+                break;
+            } else {
+                return geode::Err("Could not receive audio packet: " + utils::getErrorString(ret));
+            }
+        }
+
+        av_packet_free(&audioPacket);
         av_frame_free(&audioFrame);
 
         av_write_trailer(outputFormatContext);
